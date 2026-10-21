@@ -504,15 +504,15 @@ describe("customer accounts", { concurrency: false }, () => {
     const now = 1_700_000_000_000;
     const attempts = policy.max + 3;
     const results = await Promise.all(Array.from({ length: attempts }, () => consumeLimit(["burst"], policy, now)));
-    assert.equal(results.filter((result) => result === "ok").length, policy.max);
-    assert.equal(results.filter((result) => result === "limited").length, 3);
+    assert.equal(results.filter((result) => result.decision === "ok").length, policy.max);
+    assert.equal(results.filter((result) => result.decision === "limited").length, 3);
     assert.equal(calls, attempts);
     const later = await consumeLimit(["burst"], policy, now + policy.windowMs);
-    assert.equal(later, "limited");
+    assert.equal(later.decision, "limited");
     useMemoryRateLimits();
     resetCustomerAuthLimits();
     const expired = await consumeLimit(["burst"], policy, now + policy.windowMs);
-    assert.equal(expired, "ok");
+    assert.equal(expired.decision, "ok");
     const email = nextEmail();
     await registerCustomer({ name: "Amina Shah", email, password: PASSWORD }, { ip: "203.0.113.130" });
     const signIns = await Promise.all(
@@ -542,7 +542,7 @@ describe("customer accounts", { concurrency: false }, () => {
       const missing = await loginCustomer({ email, password: PASSWORD }, { ip: "192.0.2.90" });
       assert.equal(missing.ok, false);
       if (!missing.ok) {
-        assert.match(missing.message, /wait/i);
+        assert.equal(missing.message, "This request cannot be completed right now. Please try again in a few minutes.");
         assert.notEqual(missing.message, "The email or password is not correct.");
       }
       useRateLimitStore({
@@ -554,17 +554,53 @@ describe("customer accounts", { concurrency: false }, () => {
       const failed = await loginCustomer({ email, password: PASSWORD }, { ip: "192.0.2.91" });
       assert.equal(failed.ok, false);
       if (!failed.ok) {
-        assert.match(failed.message, /wait/i);
+        assert.equal(failed.message, "This request cannot be completed right now. Please try again in a few minutes.");
       }
     } finally {
       console.error = original;
     }
-    assert.equal(logged.some((line) => line.includes("super-secret-token")), false);
+    assert.match(logged.join("\n"), /action=login reason=unconfigured category=store/);
+    assert.match(logged.join("\n"), /action=login reason=redis category=store/);
+    assert.equal(logged.some((line) => line.includes("super-secret-token") || line.includes(email)), false);
     assert.equal(await CustomerSession.countDocuments({ customerId: (await Customer.findOne({ email }).select("_id"))?._id }), 0);
     useMemoryRateLimits();
     resetCustomerAuthLimits();
     const restored = await loginCustomer({ email, password: PASSWORD }, { ip: "192.0.2.92" });
     assert.equal(restored.ok, true);
+  });
+
+  test("accepts a correct login after the rate-limit window expires", async () => {
+    const email = nextEmail();
+    const ip = "192.0.2.150";
+    const now = 1_700_000_000_000;
+    const windowMs = customerAuthPolicy().windowMs;
+    await registerCustomer({ name: "Amina Shah", email, password: PASSWORD }, { ip: "203.0.113.150", now });
+    resetCustomerAuthLimits();
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const failed = await loginCustomer({ email, password: "wrong-password-1" }, { ip, now });
+      assert.equal(failed.ok, false);
+      if (!failed.ok) {
+        assert.equal(failed.message, "The email or password is not correct.");
+      }
+    }
+    const logged: string[] = [];
+    const original = console.error;
+    console.error = (...args: unknown[]) => {
+      logged.push(args.map(String).join(" "));
+    };
+    try {
+      const blocked = await loginCustomer({ email, password: PASSWORD }, { ip, now });
+      assert.equal(blocked.ok, false);
+      if (!blocked.ok) {
+        assert.equal(blocked.message, "Please wait a few minutes and try again.");
+      }
+    } finally {
+      console.error = original;
+    }
+    assert.match(logged.join("\n"), /action=login reason=limited category=/);
+    assert.equal(logged.some((line) => line.includes(email) || line.includes(PASSWORD)), false);
+    const renewed = await loginCustomer({ email, password: PASSWORD }, { ip, now: now + windowMs });
+    assert.equal(renewed.ok, true);
   });
 });
 

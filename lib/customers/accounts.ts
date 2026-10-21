@@ -18,6 +18,7 @@ const NAME = /^[\p{L}][\p{L} .'-]{1,79}$/u;
 const RESET_MS = 30 * 60 * 1000;
 const LOGIN_FAIL = "The email or password is not correct.";
 const RATE_LIMIT = "Please wait a few minutes and try again.";
+const STORE_UNAVAILABLE = "This request cannot be completed right now. Please try again in a few minutes.";
 const RESET_PUBLIC = "If an account exists for that email, a reset message is on its way.";
 const RESET_INVALID = "This reset link is invalid or has expired.";
 const REGISTER_DUPLICATE = "An account could not be created. If you already have an account, sign in.";
@@ -41,8 +42,9 @@ export async function registerCustomer(
   const name = typeof input.name === "string" ? input.name.trim() : "";
   const email = normalizeEmail(input.email);
   const keys = limitKeys("register", context.ip, email);
-  if (!(await allow(keys, now))) {
-    return { ok: false, message: RATE_LIMIT, fields: {} };
+  const registration = await gate(keys, now);
+  if (registration) {
+    return { ok: false, message: registration, fields: {} };
   }
   const passwordMessage = passwordError(input.password);
   const fields: AuthFields = {};
@@ -84,8 +86,9 @@ export async function loginCustomer(
   const now = context.now ?? Date.now();
   const email = normalizeEmail(input.email);
   const keys = limitKeys("login", context.ip, email);
-  if (!(await allow(keys, now))) {
-    return { ok: false, message: RATE_LIMIT };
+  const blocked = await gate(keys, now);
+  if (blocked) {
+    return { ok: false, message: blocked };
   }
   const password = typeof input.password === "string" ? input.password : "";
   await connectToDatabase();
@@ -113,8 +116,9 @@ export async function requestPasswordReset(
   const now = context.now ?? Date.now();
   const email = normalizeEmail(emailInput);
   const keys = limitKeys("reset", context.ip, email);
-  if (!(await allow(keys, now))) {
-    return { message: RATE_LIMIT };
+  const blocked = await gate(keys, now);
+  if (blocked) {
+    return { message: blocked };
   }
   if (!email || !context.appUrl) {
     return { message: RESET_PUBLIC };
@@ -147,8 +151,9 @@ export async function resetCustomerPassword(
   context: { ip: string; now?: number } = { ip: "unknown" },
 ): Promise<{ ok: true } | { ok: false; message: string }> {
   const now = context.now ?? Date.now();
-  if (!(await allow([`reset-submit:${context.ip}`], now))) {
-    return { ok: false, message: RATE_LIMIT };
+  const blocked = await gate([`reset-submit:${context.ip}`], now);
+  if (blocked) {
+    return { ok: false, message: blocked };
   }
   const passwordMessage = passwordError(input.password);
   if (passwordMessage || typeof input.password !== "string" || typeof input.token !== "string" || !/^[A-Za-z0-9_-]{43}$/.test(input.token)) {
@@ -218,8 +223,12 @@ function limitKeys(action: string, ip: string, email: string | null): string[] {
   return keys;
 }
 
-async function allow(keys: string[], now: number): Promise<boolean> {
-  return (await consumeLimit(keys, customerAuthPolicy(), now)) === "ok";
+async function gate(keys: string[], now: number): Promise<string | null> {
+  const outcome = await consumeLimit(keys, customerAuthPolicy(), now);
+  if (outcome.decision === "ok") {
+    return null;
+  }
+  return outcome.decision === "limited" ? RATE_LIMIT : STORE_UNAVAILABLE;
 }
 
 function duplicateKey(error: unknown): boolean {

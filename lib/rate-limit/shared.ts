@@ -25,7 +25,14 @@ return current
 const memoryStore = createMemoryRateLimitStore();
 let override: CounterStore | null = null;
 let production: CounterStore | null = null;
-let unavailableReported = false;
+
+export type LimitCategory = "email" | "address" | "store" | "other";
+
+export type LimitOutcome = {
+  decision: LimitDecision;
+  reason: "ok" | "limited" | "unconfigured" | "redis";
+  categories: LimitCategory[];
+};
 
 export function createMemoryRateLimitStore(): CounterStore {
   const buckets = new Map<string, { count: number; resetAt: number }>();
@@ -88,20 +95,56 @@ export function useRateLimitStore(store: CounterStore): void {
 
 export function resetCustomerAuthLimits(): void {
   memoryStore.reset?.();
-  unavailableReported = false;
 }
 
-export async function consumeLimit(keys: string[], policy: RatePolicy, now = Date.now()): Promise<LimitDecision> {
+export async function consumeLimit(keys: string[], policy: RatePolicy, now = Date.now()): Promise<LimitOutcome> {
   try {
     const counts = await Promise.all(keys.map((key) => activeStore().increment(`kl:${key}`, policy.windowMs, now)));
-    return counts.some((count) => count > policy.max) ? "limited" : "ok";
-  } catch {
-    if (!unavailableReported) {
-      unavailableReported = true;
-      console.error("Shared rate limit store is unavailable.");
+    const categories = keys.flatMap((key, index) => ((counts[index] ?? 0) > policy.max ? [categoryOf(key)] : []));
+    if (categories.length === 0) {
+      return { decision: "ok", reason: "ok", categories: [] };
     }
-    return "unavailable";
+    const outcome: LimitOutcome = { decision: "limited", reason: "limited", categories: unique(categories) };
+    report(keys, outcome);
+    return outcome;
+  } catch (error) {
+    const outcome: LimitOutcome = {
+      decision: "unavailable",
+      reason: error instanceof Error && error.message === "unconfigured" ? "unconfigured" : "redis",
+      categories: ["store"],
+    };
+    report(keys, outcome);
+    return outcome;
   }
+}
+
+function report(keys: string[], outcome: LimitOutcome): void {
+  const action = actionOf(keys[0] ?? "");
+  const category = outcome.categories.join("+");
+  console.error(`Rate limit rejected action=${action} reason=${outcome.reason} category=${category}`);
+}
+
+function categoryOf(key: string): LimitCategory {
+  if (key.includes("-email:")) {
+    return "email";
+  }
+  const action = key.split(":")[0] ?? "";
+  if (action === "login" || action === "register" || action === "reset" || action === "reset-submit" || action === "order") {
+    return "address";
+  }
+  return "other";
+}
+
+function actionOf(key: string): string {
+  const action = (key.split(":")[0] ?? "").replace(/-email$/, "");
+  if (action === "login" || action === "register" || action === "reset" || action === "reset-submit" || action === "order") {
+    return action;
+  }
+  return "unknown";
+}
+
+function unique(categories: LimitCategory[]): LimitCategory[] {
+  return [...new Set(categories)];
 }
 
 function activeStore(): CounterStore {
