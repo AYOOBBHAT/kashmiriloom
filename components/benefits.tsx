@@ -12,7 +12,7 @@ export function Benefits() {
         <SectionHeading id="house" eyebrow="The house" title="What you can count on here">
           <p>
             A calm way to read the cloth: the price, the technique, and how to keep it.
-            Checkout does not add a delivery charge. Returns and certification are not part of this edition.
+            Standard shipping is free. A shawl that arrives damaged or defective is covered by the refund policy.
           </p>
         </SectionHeading>
         <ul className="mt-12 grid list-none gap-10 sm:grid-cols-2 lg:mt-16 lg:grid-cols-4">

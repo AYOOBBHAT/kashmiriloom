@@ -1,19 +1,18 @@
 import { isPaise } from "@/lib/money";
 
 /**
- * Shipping and tax are not configured.
- * Checkout charges the catalogue subtotal only.
- * The zero amounts are explicit "not added" values, not calculated rates.
- * Do not replace them with a guessed delivery fee or tax.
+ * Standard shipping is free, so shippingPaise stays 0.
+ * Checkout does not add a separate tax line, so taxPaise stays 0.
+ * The zero tax amount is not a finding that a supply is tax-exempt.
  */
 export const CHECKOUT_POLICY = {
   shippingPaise: 0,
   taxPaise: 0,
   shippingLabel: "Delivery",
-  shippingDetail:
-    "No delivery charge is added. A shipping rate has not been set, so checkout does not invent one.",
+  shippingDetail: "Standard shipping is free. Delivery is expected in about 7 days, and that date is an estimate.",
   taxLabel: "Tax",
-  taxDetail: "No separate tax is added. A tax rule has not been set, so checkout does not invent one.",
+  taxDetail:
+    "Checkout does not add a separate tax line. The seller states that the business is not registered for GST. This is not a statement that a supply is tax-exempt.",
   paymentDetail:
     "Razorpay test checkout opens after the order is reserved. The order stays unpaid until that payment is captured and checked on the server. Live payments are not accepted.",
 } as const;

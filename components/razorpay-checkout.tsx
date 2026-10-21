@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { confirmCheckout, prepareCheckout } from "@/app/(store)/checkout/payment-actions";
+import { CheckoutPolicyLinks } from "@/components/policy-document";
 
 type RazorpayCheckoutInstance = {
   open: () => void;
@@ -119,6 +120,7 @@ export function RazorpayCheckout({
 
   return (
     <div className="grid gap-4">
+      <CheckoutPolicyLinks id="refund-policy-before-payment" />
       <button
         type="button"
         onClick={() => void openCheckout()}

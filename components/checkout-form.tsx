@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useActionState } from "react";
 import { placeOrder, type PlaceOrderState } from "@/app/(store)/checkout/actions";
 import { useBag } from "@/components/bag-provider";
+import { CheckoutPolicyLinks } from "@/components/policy-document";
 import { RazorpayCheckout } from "@/components/razorpay-checkout";
 import { INDIAN_STATES } from "@/lib/orders/address";
 import { CHECKOUT_POLICY } from "@/lib/orders/charges";
@@ -124,6 +125,7 @@ export function CheckoutForm({ accountEmail = "" }: { accountEmail?: string }) {
         </fieldset>
 
         {state.fields.lines ? <p className="text-sm text-burgundy">{state.fields.lines}</p> : null}
+        <CheckoutPolicyLinks />
         <div>
           <button
             type="submit"
@@ -192,7 +194,7 @@ function ChargeRows({ subtotalPaise }: { subtotalPaise: number | null }) {
       </div>
       <div className="flex items-baseline justify-between gap-4">
         <dt className="text-sm text-muted">{CHECKOUT_POLICY.shippingLabel}</dt>
-        <dd className="text-right text-sm text-ink">Not added</dd>
+        <dd className="text-right text-sm text-ink">Free</dd>
       </div>
       <p className="text-sm leading-relaxed text-muted">{CHECKOUT_POLICY.shippingDetail}</p>
       <div className="flex items-baseline justify-between gap-4">

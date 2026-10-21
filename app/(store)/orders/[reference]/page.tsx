@@ -113,7 +113,7 @@ function OrderReceipt({ order }: { order: PublicOrder }) {
       </ul>
       <dl className="mt-4 grid max-w-md gap-3">
         <Row label="Shawls" value={formatInrFromPaise(order.subtotalPaise)} />
-        <Row label={CHECKOUT_POLICY.shippingLabel} value={order.shippingPaise === 0 ? "Not added" : formatInrFromPaise(order.shippingPaise)} />
+        <Row label={CHECKOUT_POLICY.shippingLabel} value={order.shippingPaise === 0 ? "Free" : formatInrFromPaise(order.shippingPaise)} />
         <p className="text-sm leading-relaxed text-muted">{order.shippingDetail}</p>
         <Row label={CHECKOUT_POLICY.taxLabel} value={order.taxPaise === 0 ? "Not added" : formatInrFromPaise(order.taxPaise)} />
         <p className="text-sm leading-relaxed text-muted">{order.taxDetail}</p>
