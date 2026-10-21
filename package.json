@@ -6,12 +6,21 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:orders": "node --conditions=react-server --experimental-strip-types --import ./scripts/register.mjs --test tests/orders.test.ts",
+    "test:payments": "node --conditions=react-server --experimental-strip-types --import ./scripts/register.mjs --test tests/payments.test.ts",
+    "seed": "node --conditions=react-server --experimental-strip-types --import ./scripts/register.mjs scripts/seed-products.ts",
+    "admin:bootstrap": "node --conditions=react-server --experimental-strip-types --import ./scripts/register.mjs scripts/bootstrap-admin.ts"
   },
   "dependencies": {
+    "bcryptjs": "^3.0.3",
+    "iron-session": "^9.0.1",
+    "mongoose": "^9.11.2",
     "next": "16.4.2",
+    "razorpay": "^2.9.8",
     "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react-dom": "19.3.0",
+    "server-only": "^0.0.1"
   },
   "devDependencies": {
     "@tailwindcss/turbopack": "^4",
