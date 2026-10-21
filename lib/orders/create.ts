@@ -1,9 +1,10 @@
 import "server-only";
 
-import { type ClientSession, type Types } from "mongoose";
+import { isValidObjectId, type ClientSession, type Types } from "mongoose";
 import { CatalogueAccessError, redactSecrets } from "@/lib/catalogue-error";
 import { isPaise } from "@/lib/money";
 import { connectToDatabase } from "@/lib/mongodb";
+import { Customer } from "@/lib/models/customer";
 import { Order, type FulfilmentStatus, type OrderLineRecord } from "@/lib/models/order";
 import { Product } from "@/lib/models/product";
 import { approvedCharges } from "@/lib/orders/charges";
@@ -42,7 +43,7 @@ class StockConflict extends Error {
 
 export async function createGuestOrder(
   input: unknown,
-  options?: { reservation?: "transaction" | "sequential" },
+  options?: { reservation?: "transaction" | "sequential"; customerId?: string },
 ): Promise<CreateOrderResult> {
   const parsed = validateCheckout(input);
   if (!parsed.ok) {
@@ -51,13 +52,14 @@ export async function createGuestOrder(
 
   try {
     await connectToDatabase();
+    const owner = await customerOwner(options?.customerId);
     const mode = options?.reservation ?? "transaction";
     for (let attempt = 0; attempt < 3; attempt += 1) {
       try {
         const outcome =
           mode === "sequential"
-            ? await place(parsed.draft, null)
-            : await runOrderTransaction((session) => place(parsed.draft, session));
+            ? await place(parsed.draft, null, owner)
+            : await runOrderTransaction((session) => place(parsed.draft, session, owner));
         if (outcome.type === "rejected") {
           return { ok: false, code: outcome.code, message: outcome.message, fields: outcome.fields };
         }
@@ -67,7 +69,7 @@ export async function createGuestOrder(
         return { ok: true, reference: outcome.reference, viewToken: outcome.viewToken };
       } catch (error) {
         if (mode === "transaction" && transactionsUnsupported(error)) {
-          const outcome = await place(parsed.draft, null);
+          const outcome = await place(parsed.draft, null, owner);
           if (outcome.type === "rejected") {
             return { ok: false, code: outcome.code, message: outcome.message, fields: outcome.fields };
           }
@@ -111,7 +113,11 @@ export async function createGuestOrder(
   }
 }
 
-async function place(draft: CheckoutDraft, session: ClientSession | null): Promise<PlaceOutcome> {
+async function place(
+  draft: CheckoutDraft,
+  session: ClientSession | null,
+  customerId?: Types.ObjectId,
+): Promise<PlaceOutcome> {
   const existing = await Order.findOne({ idempotencyKey: draft.idempotencyKey })
     .session(session)
     .select("publicReference fingerprint")
@@ -135,7 +141,16 @@ async function place(draft: CheckoutDraft, session: ClientSession | null): Promi
     if (!isPaise(subtotalPaise) || !isPaise(totalPaise)) {
       throw new Error("Order total is outside the catalogue range.");
     }
-    const reference = await insertOrder(draft, priced.lines, viewToken, subtotalPaise, charges, totalPaise, session);
+    const reference = await insertOrder(
+      draft,
+      priced.lines,
+      viewToken,
+      subtotalPaise,
+      charges,
+      totalPaise,
+      session,
+      customerId,
+    );
     return { type: "created", reference, viewToken };
   } catch (error) {
     if (!session && reserved.length > 0) {
@@ -226,6 +241,7 @@ async function insertOrder(
   charges: { shippingPaise: number; taxPaise: number },
   totalPaise: number,
   session: ClientSession | null,
+  customerId?: Types.ObjectId,
 ): Promise<string> {
   const publicReference = createPublicReference();
   await Order.create(
@@ -246,6 +262,7 @@ async function insertOrder(
         paymentStatus: "pending",
         fulfilmentStatus: "pending" satisfies FulfilmentStatus,
         paymentExpiresAt: paymentExpiresAt(),
+        ...(customerId ? { customerId } : {}),
       },
     ],
     session ? { session } : undefined,
@@ -265,6 +282,14 @@ async function replay(draft: CheckoutDraft, reference: string, fingerprint: stri
   const viewToken = createViewToken();
   await Order.updateOne({ publicReference: reference }, { $set: { viewTokenHash: hashViewToken(viewToken) } });
   return { ok: true, reference, viewToken };
+}
+
+async function customerOwner(customerId: string | undefined): Promise<Types.ObjectId | undefined> {
+  if (!customerId || !isValidObjectId(customerId)) {
+    return undefined;
+  }
+  const customer = await Customer.findById(customerId).select("_id").lean<{ _id: Types.ObjectId } | null>();
+  return customer?._id;
 }
 
 function unavailable(error: unknown): CreateOrderResult {

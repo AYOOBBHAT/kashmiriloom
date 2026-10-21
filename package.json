@@ -9,17 +9,22 @@
     "lint": "eslint",
     "test:orders": "node --conditions=react-server --experimental-strip-types --import ./scripts/register.mjs --test tests/orders.test.ts",
     "test:payments": "node --conditions=react-server --experimental-strip-types --import ./scripts/register.mjs --test tests/payments.test.ts",
+    "test:customers": "node --conditions=react-server --experimental-strip-types --import ./scripts/register.mjs --test tests/customers.test.ts",
     "seed": "node --conditions=react-server --experimental-strip-types --import ./scripts/register.mjs scripts/seed-products.ts",
     "admin:bootstrap": "node --conditions=react-server --experimental-strip-types --import ./scripts/register.mjs scripts/bootstrap-admin.ts"
   },
   "dependencies": {
+    "@upstash/redis": "^1.39.0",
     "bcryptjs": "^3.0.3",
+    "hash-wasm": "^4.12.0",
     "iron-session": "^9.0.1",
+    "jose": "^6.2.13",
     "mongoose": "^9.11.2",
     "next": "16.4.2",
     "razorpay": "^2.9.8",
     "react": "19.3.0",
     "react-dom": "19.3.0",
+    "resend": "^6.34.1",
     "server-only": "^0.0.1"
   },
   "devDependencies": {

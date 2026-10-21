@@ -1,22 +1,7 @@
-const WINDOW_MS = 15 * 60 * 1000;
-const MAX_ATTEMPTS = 10;
+import { orderSubmitPolicy } from "@/lib/rate-limit/policy";
+import { consumeLimit } from "@/lib/rate-limit/shared";
 
-type Bucket = { attempts: number; resetAt: number };
-const buckets = new Map<string, Bucket>();
-
-export function orderSubmitAllowed(key: string, now = Date.now()): boolean {
-  const bucket = buckets.get(key);
-  if (!bucket || bucket.resetAt <= now) {
-    return true;
-  }
-  return bucket.attempts < MAX_ATTEMPTS;
-}
-
-export function recordOrderSubmit(key: string, now = Date.now()): void {
-  const bucket = buckets.get(key);
-  if (!bucket || bucket.resetAt <= now) {
-    buckets.set(key, { attempts: 1, resetAt: now + WINDOW_MS });
-    return;
-  }
-  bucket.attempts += 1;
+export async function orderSubmitAllowed(ip: string, now = Date.now()): Promise<boolean> {
+  const outcome = await consumeLimit([`order:${ip}`], orderSubmitPolicy(), now);
+  return outcome === "ok";
 }

@@ -88,6 +88,9 @@ export function SiteHeader() {
               {item.label}
             </Link>
           ))}
+          <Link href="/account" className="text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-forest hover:text-burgundy">
+            Account
+          </Link>
         </nav>
 
         <div className="ml-auto flex shrink-0 items-center">
@@ -146,6 +149,9 @@ export function SiteHeader() {
               {item.label}
             </Link>
           ))}
+          <Link href="/account" onClick={() => setMenuOpen(false)} className="font-serif text-4xl text-forest">
+            Account
+          </Link>
         </nav>
       </Dialog>
 

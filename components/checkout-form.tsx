@@ -18,7 +18,7 @@ const emptyState: PlaceOrderState = { message: "", fields: {}, reference: "", co
 const fieldClass =
   "mt-2 w-full border border-gold/80 bg-ivory px-3 py-3 text-base text-ink outline-none focus-visible:border-forest";
 
-export function CheckoutForm() {
+export function CheckoutForm({ accountEmail = "" }: { accountEmail?: string }) {
   const router = useRouter();
   const formId = useId();
   const bag = useBag();
@@ -95,7 +95,7 @@ export function CheckoutForm() {
         <fieldset className="grid gap-5">
           <legend className="font-serif text-3xl text-forest">Contact</legend>
           <Field id={`${formId}-name`} name="name" label="Full name" autoComplete="name" error={state.fields.name} required />
-          <Field id={`${formId}-email`} name="email" label="Email" type="email" autoComplete="email" error={state.fields.email} required />
+          <Field id={`${formId}-email`} name="email" label="Email" type="email" autoComplete="email" error={state.fields.email} required defaultValue={accountEmail} />
           <Field id={`${formId}-phone`} name="phone" label="Mobile number" type="tel" autoComplete="tel" error={state.fields.phone} required />
         </fieldset>
 
@@ -219,6 +219,7 @@ function Field({
   autoComplete,
   inputMode,
   required = false,
+  defaultValue,
 }: {
   id: string;
   name: string;
@@ -228,6 +229,7 @@ function Field({
   autoComplete: string;
   inputMode?: "numeric" | "text";
   required?: boolean;
+  defaultValue?: string;
 }) {
   return (
     <div>
@@ -241,6 +243,7 @@ function Field({
         autoComplete={autoComplete}
         inputMode={inputMode}
         required={required}
+        defaultValue={defaultValue}
         aria-invalid={error ? true : undefined}
         aria-describedby={error ? `${id}-error` : undefined}
         className={fieldClass}

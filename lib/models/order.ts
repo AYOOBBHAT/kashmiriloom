@@ -49,6 +49,7 @@ export interface OrderAttrs {
   razorpayOrderId?: string;
   razorpayPaymentId?: string;
   paymentExpiresAt: Date;
+  customerId?: Types.ObjectId;
 }
 
 function isWholePaise(value: number): boolean {
@@ -125,6 +126,7 @@ const orderSchema = new Schema<OrderAttrs>(
     razorpayOrderId: { type: String, trim: true, match: /^order_[A-Za-z0-9]+$/ },
     razorpayPaymentId: { type: String, trim: true, match: /^pay_[A-Za-z0-9]+$/ },
     paymentExpiresAt: { type: Date, required: true },
+    customerId: { type: Schema.Types.ObjectId, ref: "Customer" },
     fulfilmentStatus: {
       type: String,
       required: true,
@@ -139,6 +141,7 @@ orderSchema.index({ createdAt: -1 });
 orderSchema.index({ fulfilmentStatus: 1, createdAt: -1 });
 orderSchema.index({ paymentStatus: 1, createdAt: -1 });
 orderSchema.index({ razorpayOrderId: 1 }, { unique: true, sparse: true });
+orderSchema.index({ customerId: 1, createdAt: -1 });
 
 function blocksPaymentChange(update: unknown): boolean {
   if (!update || typeof update !== "object") {

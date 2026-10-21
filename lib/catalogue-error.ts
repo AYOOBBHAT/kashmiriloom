@@ -31,7 +31,13 @@ export function redactSecrets(value: string): string {
     .replace(/CLOUDINARY_API_KEY\s*[=:]\s*\S+/gi, "CLOUDINARY_API_KEY=[redacted]")
     .replace(/RAZORPAY_KEY_SECRET\s*[=:]\s*\S+/gi, "RAZORPAY_KEY_SECRET=[redacted]")
     .replace(/RAZORPAY_WEBHOOK_SECRET\s*[=:]\s*\S+/gi, "RAZORPAY_WEBHOOK_SECRET=[redacted]")
-    .replace(/RAZORPAY_KEY_ID\s*[=:]\s*\S+/gi, "RAZORPAY_KEY_ID=[redacted]");
+    .replace(/RAZORPAY_KEY_ID\s*[=:]\s*\S+/gi, "RAZORPAY_KEY_ID=[redacted]")
+    .replace(/RESEND_API_KEY\s*[=:]\s*\S+/gi, "RESEND_API_KEY=[redacted]")
+    .replace(/GOOGLE_CLIENT_SECRET\s*[=:]\s*\S+/gi, "GOOGLE_CLIENT_SECRET=[redacted]")
+    .replace(/GOOGLE_CLIENT_ID\s*[=:]\s*\S+/gi, "GOOGLE_CLIENT_ID=[redacted]")
+    .replace(/UPSTASH_REDIS_REST_TOKEN\s*[=:]\s*\S+/gi, "UPSTASH_REDIS_REST_TOKEN=[redacted]")
+    .replace(/UPSTASH_REDIS_REST_URL\s*[=:]\s*\S+/gi, "UPSTASH_REDIS_REST_URL=[redacted]")
+    .replace(/token=[A-Za-z0-9_-]+/g, "token=[redacted]");
 }
 
 export function toProblem(error: CatalogueAccessError): CatalogueProblem {

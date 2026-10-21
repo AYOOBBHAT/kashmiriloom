@@ -4,8 +4,9 @@ import { revalidatePath } from "next/cache";
 import { cookies, headers } from "next/headers";
 import { connection } from "next/server";
 import { clientAddress } from "@/lib/auth/rate-limit";
+import { getCurrentCustomer } from "@/lib/customers/current";
 import { createGuestOrder } from "@/lib/orders/create";
-import { orderSubmitAllowed, recordOrderSubmit } from "@/lib/orders/submit-limit";
+import { orderSubmitAllowed } from "@/lib/orders/submit-limit";
 import { ORDER_VIEW_COOKIE, orderViewCookieOptions, packViewCookie } from "@/lib/orders/view-cookie";
 import type { CheckoutFields } from "@/lib/orders/validate";
 
@@ -24,7 +25,7 @@ export async function placeOrder(
 ): Promise<PlaceOrderState> {
   await connection();
   const addressKey = clientAddress(await headers());
-  if (!orderSubmitAllowed(addressKey)) {
+  if (!(await orderSubmitAllowed(addressKey))) {
     return {
       message: "Please wait a few minutes before placing another order.",
       fields: {},
@@ -32,10 +33,10 @@ export async function placeOrder(
       code: "unavailable",
     };
   }
-  recordOrderSubmit(addressKey);
 
   const slugs = formData.getAll("slug");
   const quantities = formData.getAll("quantity");
+  const customer = await getCurrentCustomer();
   const result = await createGuestOrder({
     idempotencyKey: formData.get("idempotencyKey"),
     lines: slugs.map((slug, index) => ({ slug, quantity: quantities[index] })),
@@ -52,7 +53,7 @@ export async function placeOrder(
       postalCode: formData.get("postalCode"),
       country: "IN",
     },
-  });
+  }, { customerId: customer?.id });
 
   if (!result.ok) {
     return { message: result.message, fields: result.fields, reference: "", code: result.code };

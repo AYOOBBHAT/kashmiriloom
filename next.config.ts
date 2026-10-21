@@ -21,6 +21,18 @@ const nextConfig: NextConfig = {
   },
   cacheComponents: true,
   partialPrefetching: true,
+  async headers() {
+    const noStore = [{ key: "Cache-Control", value: "private, no-store" }];
+    return [
+      { source: "/account", headers: noStore },
+      { source: "/account/:path*", headers: noStore },
+      { source: "/login", headers: noStore },
+      { source: "/register", headers: noStore },
+      { source: "/forgot-password", headers: noStore },
+      { source: "/reset-password", headers: noStore },
+      { source: "/auth/callback/:path*", headers: noStore },
+    ];
+  },
   turbopack: {
     rules: {
       "*.css": {
