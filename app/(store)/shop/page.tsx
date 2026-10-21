@@ -7,11 +7,13 @@ import { ShopCatalog } from "@/components/shop-catalog";
 import { listPublicCategories } from "@/lib/categories/public";
 import { searchProducts, withCatalogue } from "@/lib/products/repository";
 import { emptyShopQuery, parseShopQuery } from "@/lib/shop";
+import { absoluteUrl } from "@/lib/site/sitemap-entries";
 
 export const metadata: Metadata = {
   title: "Shop shawls",
   description:
     "Browse the KashmiriLoom catalogue of Kani, embroidered, and everyday shawls. Prices are shown in INR.",
+  alternates: { canonical: absoluteUrl("/shop") },
 };
 
 type ShopPageProps = {

@@ -31,6 +31,10 @@ const nextConfig: NextConfig = {
       { source: "/forgot-password", headers: noStore },
       { source: "/reset-password", headers: noStore },
       { source: "/auth/callback/:path*", headers: noStore },
+      { source: "/checkout", headers: noStore },
+      { source: "/checkout/:path*", headers: noStore },
+      { source: "/orders", headers: noStore },
+      { source: "/orders/:path*", headers: noStore },
     ];
   },
   turbopack: {

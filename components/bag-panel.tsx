@@ -105,7 +105,7 @@ export function BagPanel({ onNavigate }: { onNavigate: () => void }) {
                 {product.name}
               </Link>
               <p className="mt-1 text-sm text-muted">
-                <span className="sr-only">Sample price </span>
+                <span className="sr-only">Price </span>
                 {formatInrFromPaise(product.pricePaise)} each
               </p>
               <div className="mt-3 flex flex-wrap items-center gap-3">

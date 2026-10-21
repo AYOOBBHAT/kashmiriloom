@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Cormorant_Garamond, Source_Sans_3 } from "next/font/google";
+import { STORE_ORIGIN } from "@/lib/site/policies";
 import "./globals.css";
 
 const cormorant = Cormorant_Garamond({
@@ -18,12 +19,13 @@ const sourceSans = Source_Sans_3({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(STORE_ORIGIN),
   title: {
     default: "KashmiriLoom — Woven in Kashmir",
     template: "%s · KashmiriLoom",
   },
   description:
-    "KashmiriLoom is a house for traditional Kashmiri shawls: Kani weaves, embroidered pieces, and everyday wraps, with sample prices in INR.",
+    "KashmiriLoom is a house for traditional Kashmiri shawls: Kani weaves, embroidered pieces, and everyday wraps. Prices are shown in Indian rupees.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

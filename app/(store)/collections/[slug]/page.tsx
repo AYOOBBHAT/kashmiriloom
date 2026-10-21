@@ -2,32 +2,35 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 import Image from "next/image";
 import { notFound, redirect } from "next/navigation";
-import { collections } from "@/data/catalog";
 import { resolveCategoryRoute, type PublicCategory } from "@/lib/categories/public";
 import { listProductsByCategory, withCatalogue } from "@/lib/products/repository";
 import { CatalogueLoading, CatalogueProblem } from "@/components/catalogue-status";
 import { Container } from "@/components/container";
 import { ProductCard } from "@/components/product-card";
 import { SectionHeading } from "@/components/section-heading";
+import { absoluteUrl } from "@/lib/site/sitemap-entries";
 
 type CollectionPageProps = {
   params: Promise<{ slug: string }>;
 };
 
-export function generateStaticParams() {
-  return collections.map((collection) => ({ slug: collection.slug }));
-}
-
 export async function generateMetadata({ params }: CollectionPageProps): Promise<Metadata> {
   const { slug } = await params;
   const result = await withCatalogue(() => resolveCategoryRoute(slug));
-  const category = result.ok && (result.data.kind === "active" || result.data.kind === "fallback") ? result.data.category : null;
-  if (!category) {
+  if (!result.ok || result.data.kind === "missing") {
     return { title: "Collection" };
   }
+  if (result.data.kind === "redirect") {
+    return {
+      title: "Collection",
+      alternates: { canonical: absoluteUrl(`/collections/${result.data.slug}`) },
+    };
+  }
+  const category = result.data.category;
   return {
     title: category.name,
     description: `${category.description} Prices are shown in INR.`,
+    alternates: { canonical: absoluteUrl(`/collections/${category.slug}`) },
   };
 }
 

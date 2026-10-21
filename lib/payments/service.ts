@@ -142,15 +142,18 @@ export async function receiveWebhook(
   gateway: PaymentGateway | null = livePaymentGateway(),
 ): Promise<WebhookResult> {
   const secret = readWebhookSecret();
-  if (!secret || !gateway) {
+  if (!secret) {
     return { status: 503, duplicate: false };
-  }
-  if (!EVENT_ID.test(input.eventId)) {
-    return { status: 400, duplicate: false };
   }
   const expected = webhookSignature(input.rawBody, secret);
   if (!signaturesMatch(expected, input.signature)) {
     return { status: 400, duplicate: false };
+  }
+  if (!EVENT_ID.test(input.eventId)) {
+    return { status: 400, duplicate: false };
+  }
+  if (!readTestCheckoutConfig().ok || !gateway) {
+    return { status: 503, duplicate: false };
   }
   await connectToDatabase();
   const seen = await WebhookEvent.findOne({ eventId: input.eventId }).select("eventId").lean();

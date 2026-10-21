@@ -22,6 +22,17 @@ end
 return current
 `;
 
+const KNOWN_ACTIONS = new Set([
+  "login",
+  "register",
+  "reset",
+  "reset-submit",
+  "order",
+  "admin-login",
+  "payment-prepare",
+  "payment-confirm",
+]);
+
 const memoryStore = createMemoryRateLimitStore();
 let override: CounterStore | null = null;
 let production: CounterStore | null = null;
@@ -129,7 +140,7 @@ function categoryOf(key: string): LimitCategory {
     return "email";
   }
   const action = key.split(":")[0] ?? "";
-  if (action === "login" || action === "register" || action === "reset" || action === "reset-submit" || action === "order") {
+  if (KNOWN_ACTIONS.has(action)) {
     return "address";
   }
   return "other";
@@ -137,10 +148,7 @@ function categoryOf(key: string): LimitCategory {
 
 function actionOf(key: string): string {
   const action = (key.split(":")[0] ?? "").replace(/-email$/, "");
-  if (action === "login" || action === "register" || action === "reset" || action === "reset-submit" || action === "order") {
-    return action;
-  }
-  return "unknown";
+  return KNOWN_ACTIONS.has(action) ? action : "unknown";
 }
 
 function unique(categories: LimitCategory[]): LimitCategory[] {

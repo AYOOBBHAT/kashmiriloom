@@ -5,6 +5,7 @@ import { cookies, headers } from "next/headers";
 import { connection } from "next/server";
 import { clientAddress } from "@/lib/auth/rate-limit";
 import { getCurrentCustomer } from "@/lib/customers/current";
+import { purchasedCollectionPaths } from "@/lib/orders/collection-refresh";
 import { createGuestOrder } from "@/lib/orders/create";
 import { orderSubmitAllowed } from "@/lib/orders/submit-limit";
 import { ORDER_VIEW_COOKIE, orderViewCookieOptions, packViewCookie } from "@/lib/orders/view-cookie";
@@ -67,9 +68,13 @@ export async function placeOrder(
   );
   revalidatePath("/");
   revalidatePath("/shop");
-  revalidatePath("/collections/kani");
-  revalidatePath("/collections/embroidered");
-  revalidatePath("/collections/everyday");
+  try {
+    for (const path of await purchasedCollectionPaths(result.reference)) {
+      revalidatePath(path);
+    }
+  } catch {
+    console.error("Collection pages could not be revalidated.");
+  }
   revalidatePath("/admin");
   revalidatePath("/admin/orders");
   for (const slug of slugs) {

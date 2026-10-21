@@ -5,6 +5,7 @@ import { notFound, redirect } from "next/navigation";
 import { availabilityLabel } from "@/data/catalog";
 import { sampleProductSlugs } from "@/data/sample-products";
 import { formatInrFromPaise } from "@/lib/money";
+import { absoluteUrl } from "@/lib/site/sitemap-entries";
 import {
   getPublicProductRoute,
   listRelatedProducts,
@@ -15,6 +16,8 @@ import { CatalogueLoading, CatalogueProblem } from "@/components/catalogue-statu
 import { Container } from "@/components/container";
 import { ProductCard } from "@/components/product-card";
 import { ProductGallery } from "@/components/product-gallery";
+import { JsonLd } from "@/components/json-ld";
+import { productPageJsonLd } from "@/lib/site/structured-data";
 
 type ProductPageProps = {
   params: Promise<{ slug: string }>;
@@ -27,12 +30,19 @@ export function generateStaticParams() {
 export async function generateMetadata({ params }: ProductPageProps): Promise<Metadata> {
   const { slug } = await params;
   const result = await withCatalogue(() => getPublicProductRoute(slug));
-  if (!result.ok || result.data.kind !== "product") {
+  if (!result.ok || result.data.kind === "missing") {
     return { title: "Shawl" };
+  }
+  if (result.data.kind === "redirect") {
+    return {
+      title: "Shawl",
+      alternates: { canonical: absoluteUrl(`/products/${result.data.slug}`) },
+    };
   }
   return {
     title: result.data.product.name,
-    description: `${result.data.product.summary} Sample price ${formatInrFromPaise(result.data.product.pricePaise)}.`,
+    description: `${result.data.product.summary} Price ${formatInrFromPaise(result.data.product.pricePaise)}.`,
+    alternates: { canonical: absoluteUrl(`/products/${result.data.product.slug}`) },
   };
 }
 
@@ -65,6 +75,7 @@ async function ProductDetail({ params }: ProductPageProps) {
 
   return (
     <>
+      <JsonLd data={productPageJsonLd(product)} />
       <nav aria-label="Breadcrumb" className="text-sm text-muted">
         <ol className="flex flex-wrap items-center gap-2">
           <li>
@@ -96,7 +107,7 @@ async function ProductDetail({ params }: ProductPageProps) {
           </h1>
           <p className="mt-5 max-w-xl text-lg leading-relaxed text-muted">{product.description}</p>
           <p className="mt-8 text-[0.72rem] font-semibold uppercase tracking-[0.2em] text-burgundy">
-            Sample price
+            Price
           </p>
           <p className="mt-2 font-serif text-4xl text-forest">
             {formatInrFromPaise(product.pricePaise)}

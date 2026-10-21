@@ -1,13 +1,3 @@
-const WINDOW_MS = 15 * 60 * 1000;
-const MAX_ATTEMPTS = 5;
-
-type Bucket = {
-  attempts: number;
-  resetAt: number;
-};
-
-const buckets = new Map<string, Bucket>();
-
 const IPV4 = /^(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)(?:\.(?:25[0-5]|2[0-4]\d|1\d\d|[1-9]?\d)){3}$/;
 
 export function clientAddress(headers: Headers, env: Record<string, string | undefined> = process.env): string {
@@ -45,29 +35,4 @@ function singleIp(value: string | null): string | null {
     return width <= 8 ? candidate : null;
   }
   return width === 8 ? candidate : null;
-}
-
-export function loginAllowed(key: string, now = Date.now()): boolean {
-  const bucket = buckets.get(key);
-  if (!bucket || bucket.resetAt <= now) {
-    return true;
-  }
-  return bucket.attempts < MAX_ATTEMPTS;
-}
-
-export function recordLoginFailure(key: string, now = Date.now()): void {
-  const bucket = buckets.get(key);
-  if (!bucket || bucket.resetAt <= now) {
-    buckets.set(key, { attempts: 1, resetAt: now + WINDOW_MS });
-    return;
-  }
-  bucket.attempts += 1;
-}
-
-export function clearLoginFailures(key: string): void {
-  buckets.delete(key);
-}
-
-export function resetLoginLimits(): void {
-  buckets.clear();
 }

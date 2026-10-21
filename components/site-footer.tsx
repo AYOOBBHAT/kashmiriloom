@@ -100,7 +100,7 @@ export function SiteFooter() {
       <div className="border-t border-ivory/15">
         <Container className="flex flex-col gap-2 py-5 text-sm text-ivory/85 sm:flex-row sm:items-center sm:justify-between">
           <p>© 2026 KashmiriLoom</p>
-          <p>Sample prices, shown in INR. Standard shipping is free. Damaged or defective shawls are covered by the refund policy.</p>
+          <p>Prices are shown in INR. Standard shipping is free. Damaged or defective shawls are covered by the refund policy.</p>
         </Container>
       </div>
     </footer>

@@ -7,7 +7,7 @@ import { Product } from "@/lib/models/product";
 import { WebhookEvent } from "@/lib/models/webhook-event";
 import { createGuestOrder } from "@/lib/orders/create";
 import { commitFulfilmentChange } from "@/lib/orders/fulfilment";
-import { readTestCheckoutConfig } from "@/lib/payments/config";
+import { readTestCheckoutConfig, readWebhookSecret } from "@/lib/payments/config";
 import type { PaymentGateway, RemotePayment } from "@/lib/payments/gateway";
 import { confirmTestPayment, prepareTestPayment, receiveWebhook, reconcileUnpaidOrder } from "@/lib/payments/service";
 import { paymentSignature, webhookSignature } from "@/lib/payments/signature";
@@ -86,14 +86,107 @@ describe("test checkout payments", { concurrency: false }, () => {
     const payment = remote(nextPaymentId(), orderId, PRICE, "captured");
     await attach(reference, orderId);
     const raw = webhookBody("payment.captured", payment.id);
-    const { gateway } = fake({ orderId, payment });
+    const { gateway, calls } = fake({ orderId, payment });
     const result = await receiveWebhook(
       { rawBody: raw, signature: "b".repeat(64), eventId: nextEventId() },
       gateway,
     );
     assert.equal(result.status, 400);
+    assert.equal(calls.fetched, 0);
     assert.equal(await WebhookEvent.countDocuments({ eventId: /^evt_p5b/ }), 0);
     assert.equal((await read(reference))?.paymentStatus, "pending");
+    assert.equal(await stock(), 3);
+  });
+
+  test("refuses the webhook when the secret is missing", async () => {
+    const reference = await place();
+    const orderId = nextOrderId();
+    const payment = remote(nextPaymentId(), orderId, PRICE, "captured");
+    await attach(reference, orderId);
+    const raw = webhookBody("payment.captured", payment.id);
+    const { gateway, calls } = fake({ orderId, payment });
+    const previous = process.env.RAZORPAY_WEBHOOK_SECRET;
+    delete process.env.RAZORPAY_WEBHOOK_SECRET;
+    try {
+      const missing = await receiveWebhook(
+        { rawBody: raw, signature: webhookSignature(raw, "test-webhook-secret-value"), eventId: nextEventId() },
+        gateway,
+      );
+      assert.equal(missing.status, 503);
+      process.env.RAZORPAY_WEBHOOK_SECRET = "short";
+      const tooShort = await receiveWebhook(
+        { rawBody: raw, signature: webhookSignature(raw, "short"), eventId: nextEventId() },
+        gateway,
+      );
+      assert.equal(tooShort.status, 503);
+    } finally {
+      process.env.RAZORPAY_WEBHOOK_SECRET = previous;
+    }
+    assert.equal(calls.fetched, 0);
+    assert.equal(await WebhookEvent.countDocuments({ eventId: /^evt_p5b/ }), 0);
+    assert.equal((await read(reference))?.paymentStatus, "pending");
+  });
+
+  test("verifies the signature against the exact raw body", async () => {
+    const reference = await place();
+    const orderId = nextOrderId();
+    const payment = remote(nextPaymentId(), orderId, PRICE, "captured");
+    await attach(reference, orderId);
+    const raw = webhookBody("payment.captured", payment.id);
+    const reformatted = JSON.stringify(JSON.parse(raw), null, 2);
+    assert.notEqual(reformatted, raw);
+    const { gateway, calls } = fake({ orderId, payment });
+    const rejected = await receiveWebhook(
+      { rawBody: reformatted, signature: webhookSignature(raw, secret()), eventId: nextEventId() },
+      gateway,
+    );
+    assert.equal(rejected.status, 400);
+    assert.equal(calls.fetched, 0);
+    assert.equal((await read(reference))?.paymentStatus, "pending");
+    const accepted = await receiveWebhook(
+      { rawBody: raw, signature: webhookSignature(raw, secret()), eventId: nextEventId() },
+      gateway,
+    );
+    assert.equal(accepted.status, 200);
+    assert.equal(accepted.duplicate, false);
+    assert.equal((await read(reference))?.paymentStatus, "paid");
+    assert.equal(await WebhookEvent.countDocuments({ eventId: /^evt_p5b/ }), 1);
+  });
+
+  test("checks a live-mode webhook signature without marking the order paid", async () => {
+    const reference = await place();
+    const orderId = nextOrderId();
+    const payment = remote(nextPaymentId(), orderId, PRICE, "captured");
+    await attach(reference, orderId);
+    const raw = webhookBody("payment.captured", payment.id);
+    const { gateway, calls } = fake({ orderId, payment });
+    const previousMode = process.env.RAZORPAY_MODE;
+    process.env.RAZORPAY_MODE = "live";
+    try {
+      const configured = readWebhookSecret();
+      assert.equal(typeof configured, "string");
+      assert.ok(configured && configured.length >= 8);
+      const blocked = readTestCheckoutConfig();
+      assert.equal(blocked.ok, false);
+      const invalid = await receiveWebhook(
+        { rawBody: raw, signature: "c".repeat(64), eventId: nextEventId() },
+        gateway,
+      );
+      assert.equal(invalid.status, 400);
+      const verified = await receiveWebhook(
+        { rawBody: raw, signature: webhookSignature(raw, secret()), eventId: nextEventId() },
+        gateway,
+      );
+      assert.equal(verified.status, 503);
+      assert.equal(verified.duplicate, false);
+    } finally {
+      process.env.RAZORPAY_MODE = previousMode;
+    }
+    assert.equal(calls.fetched, 0);
+    assert.equal(await WebhookEvent.countDocuments({ eventId: /^evt_p5b/ }), 0);
+    const stored = await read(reference);
+    assert.equal(stored?.paymentStatus, "pending");
+    assert.equal(stored?.razorpayPaymentId, undefined);
     assert.equal(await stock(), 3);
   });
 

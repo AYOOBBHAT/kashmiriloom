@@ -29,7 +29,7 @@ export default function OrdersPage({ searchParams }: PageProps) {
       <p className="text-[0.72rem] font-semibold uppercase tracking-[0.28em] text-burgundy">Desk</p>
       <h1 className="mt-3 font-serif text-4xl text-forest sm:text-5xl">Orders</h1>
       <p className="mt-4 max-w-2xl text-base leading-relaxed text-muted">
-        Guest orders reserved from the catalogue. Payment is shown from the verified test checkout, and there are no customer accounts.
+        Orders from guest checkout and from signed-in customers. Payment is shown from the verified test checkout. Live payments are not accepted.
       </p>
       <Suspense fallback={<p className="mt-8 text-muted">Loading orders…</p>}>
         <OrderList searchParams={searchParams} />

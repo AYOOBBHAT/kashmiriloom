@@ -5,6 +5,7 @@ export type RatePolicy = {
 
 const AUTH_MAX = 5;
 const ORDER_MAX = 10;
+const PAYMENT_MAX = 20;
 const WINDOW_MS = 15 * 60 * 1000;
 
 export function customerAuthPolicy(env: Record<string, string | undefined> = process.env): RatePolicy {
@@ -18,6 +19,13 @@ export function orderSubmitPolicy(env: Record<string, string | undefined> = proc
   return {
     max: boundedInt(env.ORDER_RATE_LIMIT_MAX, ORDER_MAX, 100),
     windowMs: boundedInt(env.ORDER_RATE_LIMIT_WINDOW_MS, WINDOW_MS, 24 * 60 * 60 * 1000),
+  };
+}
+
+export function paymentAttemptPolicy(env: Record<string, string | undefined> = process.env): RatePolicy {
+  return {
+    max: boundedInt(env.PAYMENT_RATE_LIMIT_MAX, PAYMENT_MAX, 100),
+    windowMs: boundedInt(env.PAYMENT_RATE_LIMIT_WINDOW_MS, WINDOW_MS, 24 * 60 * 60 * 1000),
   };
 }
 

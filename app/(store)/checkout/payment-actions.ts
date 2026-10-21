@@ -4,11 +4,8 @@ import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
 import { connection } from "next/server";
 import { clientAddress } from "@/lib/auth/rate-limit";
+import { paymentAttemptStatus } from "@/lib/payments/attempt-limit";
 import { confirmTestPayment, prepareTestPayment } from "@/lib/payments/service";
-
-const WINDOW_MS = 15 * 60 * 1000;
-const MAX_ATTEMPTS = 20;
-const buckets = new Map<string, { attempts: number; resetAt: number }>();
 
 export type PrepareCheckoutState =
   | {
@@ -26,8 +23,9 @@ export type PrepareCheckoutState =
 
 export async function prepareCheckout(reference: string): Promise<PrepareCheckoutState> {
   await connection();
-  if (!allowed(`prepare:${clientAddress(await headers())}`)) {
-    return { ok: false, message: "Please wait a few minutes before trying payment again." };
+  const limited = await paymentAttemptStatus("prepare", clientAddress(await headers()));
+  if (limited) {
+    return { ok: false, message: limited };
   }
   const result = await prepareTestPayment(reference);
   if (!result.ok || result.alreadyPaid) {
@@ -54,8 +52,9 @@ export async function confirmCheckout(
   signature: string,
 ): Promise<{ ok: true; reference: string } | { ok: false; message: string }> {
   await connection();
-  if (!allowed(`confirm:${clientAddress(await headers())}`)) {
-    return { ok: false, message: "Please wait a few minutes before trying payment again." };
+  const limited = await paymentAttemptStatus("confirm", clientAddress(await headers()));
+  if (limited) {
+    return { ok: false, message: limited };
   }
   const result = await confirmTestPayment(reference, paymentId, signature);
   if (result.ok) {
@@ -67,18 +66,4 @@ export async function confirmCheckout(
     revalidatePath(`/admin/orders/${result.reference}`);
   }
   return result;
-}
-
-function allowed(key: string): boolean {
-  const now = Date.now();
-  const bucket = buckets.get(key);
-  if (!bucket || bucket.resetAt <= now) {
-    buckets.set(key, { attempts: 1, resetAt: now + WINDOW_MS });
-    return true;
-  }
-  if (bucket.attempts >= MAX_ATTEMPTS) {
-    return false;
-  }
-  bucket.attempts += 1;
-  return true;
 }

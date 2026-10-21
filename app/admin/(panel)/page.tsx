@@ -120,7 +120,7 @@ async function Overview() {
         <section className="mt-10 border border-gold/80 px-5 py-5">
           <h2 className="font-serif text-3xl text-forest">Orders</h2>
           <p className="mt-3 max-w-2xl text-base leading-relaxed text-muted">
-            Guest checkout reserves shawls, then Razorpay test checkout can be opened. An order stays unpaid until the payment is captured and checked. Live payments are not accepted, and there are no customer accounts.
+            Guest checkout and signed-in customer checkout reserve shawls, then Razorpay test checkout can be opened. An order stays unpaid until the payment is captured and checked. Live payments are not accepted.
           </p>
           <dl className="mt-6 grid gap-4 sm:grid-cols-3">
             <div>

@@ -31,7 +31,7 @@ export function readTestCheckoutConfig(env: Record<string, string | undefined> =
 export function readWebhookSecret(env: Record<string, string | undefined> = process.env): string | null {
   const mode = env.RAZORPAY_MODE?.trim() || "test";
   const secret = env.RAZORPAY_WEBHOOK_SECRET?.trim() ?? "";
-  if (mode !== "test" || secret.length < 8) {
+  if ((mode !== "test" && mode !== "live") || secret.length < 8) {
     return null;
   }
   return secret;

@@ -35,7 +35,7 @@ export function ProductCard({ product, featured = false }: ProductCardProps) {
         <h3 className="mt-2 font-serif text-3xl text-forest">{product.name}</h3>
         <p className="mt-2 max-w-md text-base leading-relaxed text-muted">{product.summary}</p>
         <p className="mt-3 font-serif text-2xl text-forest">
-          <span className="sr-only">Sample price </span>
+          <span className="sr-only">Price </span>
           {formatInrFromPaise(product.pricePaise)}
         </p>
         {product.compareAtPricePaise != null ? (
