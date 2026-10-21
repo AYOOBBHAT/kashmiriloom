@@ -1,9 +1,10 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { DeactivateButton } from "@/components/admin/deactivate-button";
-import { collectionLabels, type CollectionId } from "@/data/catalog";
+import { managedCategoryChoices } from "@/lib/categories/admin";
 import { CatalogueAccessError } from "@/lib/catalogue-error";
 import { formatInrFromPaise } from "@/lib/money";
 import {
@@ -26,7 +27,7 @@ function first(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
 }
 
-function Filters({ query }: { query: AdminListQuery }) {
+function Filters({ query, categories }: { query: AdminListQuery; categories: { slug: string; name: string }[] }) {
   return (
     <form method="get" className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       <div className="lg:col-span-2">
@@ -52,9 +53,9 @@ function Filters({ query }: { query: AdminListQuery }) {
           className="mt-2 w-full border border-gold/80 bg-ivory px-3 py-3 text-base text-ink outline-none focus-visible:border-forest"
         >
           <option value="all">All categories</option>
-          {(Object.keys(collectionLabels) as CollectionId[]).map((category) => (
-            <option key={category} value={category}>
-              {collectionLabels[category]}
+          {categories.map((category) => (
+            <option key={category.slug} value={category.slug}>
+              {category.name}
             </option>
           ))}
         </select>
@@ -69,9 +70,10 @@ function Filters({ query }: { query: AdminListQuery }) {
           defaultValue={query.status}
           className="mt-2 w-full border border-gold/80 bg-ivory px-3 py-3 text-base text-ink outline-none focus-visible:border-forest"
         >
-          <option value="all">Active and inactive</option>
+          <option value="all">All statuses</option>
           <option value="active">Active</option>
-          <option value="inactive">Inactive</option>
+          <option value="draft">Draft</option>
+          <option value="archived">Archived</option>
         </select>
       </div>
       <div className="sm:col-span-2 lg:col-span-4">
@@ -116,9 +118,10 @@ async function ProductList({ searchParams }: PageProps) {
     return <p className="mt-6 text-base leading-relaxed text-ink">{problem}</p>;
   }
   const query = { ...parsed.query, page: result.page };
+  const categories = await managedCategoryChoices();
   return (
       <>
-        <Filters query={query} />
+        <Filters query={query} categories={categories} />
         <p className="mt-6 text-sm text-muted">
           {result.total} {result.total === 1 ? "shawl" : "shawls"}
           {result.total > ADMIN_PAGE_SIZE ? ` · page ${result.page} of ${result.pageCount}` : ""}
@@ -126,37 +129,57 @@ async function ProductList({ searchParams }: PageProps) {
         {result.items.length === 0 ? (
           <p className="mt-6 text-base leading-relaxed text-muted">No shawls match these filters.</p>
         ) : (
-          <ul className="mt-4 divide-y divide-gold/60 border-y border-gold/60">
-            {result.items.map((product) => (
-              <li key={product.id} className="flex flex-col gap-3 py-5 sm:flex-row sm:items-start sm:justify-between">
-                <div>
-                  <Link
-                    href={`/admin/products/${product.id}/edit`}
-                    className="font-serif text-2xl text-forest underline decoration-gold underline-offset-4"
-                  >
-                    {product.name}
-                  </Link>
-                  <p className="mt-2 text-sm text-muted">
-                    {product.slug} · {product.sku} · {collectionLabels[product.category]}
-                  </p>
-                  <p className="mt-1 text-sm text-ink">
-                    {formatInrFromPaise(product.pricePaise)} · catalogue quantity {product.stockQuantity} ·{" "}
-                    {product.active ? "Active" : "Inactive"}
-                    {product.featured ? " · Featured" : ""}
-                  </p>
-                </div>
-                <div className="flex flex-col items-start gap-1">
-                  <Link
-                    href={`/admin/products/${product.id}/edit`}
-                    className="inline-flex min-h-12 items-center text-sm text-forest underline decoration-gold underline-offset-4"
-                  >
-                    Edit
-                  </Link>
-                  {product.active ? <DeactivateButton id={product.id} name={product.name} /> : null}
-                </div>
-              </li>
-            ))}
-          </ul>
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full min-w-[880px] border-y border-gold/60 text-left">
+              <thead>
+                <tr className="text-[0.72rem] uppercase tracking-[0.16em] text-burgundy">
+                  <th className="py-3 pr-3 font-semibold">Shawl</th>
+                  <th className="py-3 pr-3 font-semibold">SKU</th>
+                  <th className="py-3 pr-3 font-semibold">Category</th>
+                  <th className="py-3 pr-3 font-semibold">Price</th>
+                  <th className="py-3 pr-3 font-semibold">Stock</th>
+                  <th className="py-3 pr-3 font-semibold">Status</th>
+                  <th className="py-3 pr-3 font-semibold">Updated</th>
+                  <th className="py-3 font-semibold">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {result.items.map((product) => (
+                  <tr key={product.id} className="border-t border-gold/60 align-top">
+                    <td className="py-4 pr-3">
+                      <div className="flex items-center gap-3">
+                        {product.imageUrl ? (
+                          <div className="relative h-14 w-14 shrink-0 overflow-hidden bg-forest/5">
+                            <Image src={product.imageUrl} alt="" fill sizes="56px" className="object-cover" />
+                          </div>
+                        ) : null}
+                        <Link href={`/admin/products/${product.id}/edit`} className="font-serif text-2xl text-forest underline decoration-gold underline-offset-4">
+                          {product.name}
+                        </Link>
+                      </div>
+                    </td>
+                    <td className="py-4 pr-3 text-sm text-ink">{product.sku}</td>
+                    <td className="py-4 pr-3 text-sm text-ink">{product.categoryName}</td>
+                    <td className="py-4 pr-3 text-sm text-ink">{formatInrFromPaise(product.pricePaise)}</td>
+                    <td className="py-4 pr-3 text-sm text-ink">
+                      {product.stockQuantity}
+                      {product.lowStock ? " · low" : ""}
+                    </td>
+                    <td className="py-4 pr-3 text-sm capitalize text-ink">{product.status}</td>
+                    <td className="py-4 pr-3 text-sm text-ink">{product.updatedAt.slice(0, 10) || "—"}</td>
+                    <td className="py-4">
+                      <div className="flex flex-col items-start">
+                        <Link href={`/admin/products/${product.id}/edit`} className="inline-flex min-h-12 items-center text-sm text-forest underline decoration-gold underline-offset-4">
+                          Edit
+                        </Link>
+                        {product.status !== "archived" ? <DeactivateButton id={product.id} name={product.name} /> : null}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
         {result.pageCount > 1 ? (
           <nav className="mt-6 flex flex-wrap items-center gap-4" aria-label="Pages">

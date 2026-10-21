@@ -1,9 +1,9 @@
-import type { CollectionId } from "@/data/catalog";
+import { isSlug } from "@/lib/catalogue/slug";
 
 export const MAX_SEARCH_LENGTH = 80;
 export const MAX_PUBLIC_PRODUCTS = 48;
 
-export type ShopCategory = CollectionId | "all";
+export type ShopCategory = string;
 export type ShopSort = "edited" | "price-asc" | "price-desc" | "name";
 
 export type ShopQuery = {
@@ -12,7 +12,6 @@ export type ShopQuery = {
   sort: ShopSort;
 };
 
-const categories: ShopCategory[] = ["all", "kani", "embroidered", "everyday"];
 const sorts: ShopSort[] = ["edited", "price-asc", "price-desc", "name"];
 
 export const emptyShopQuery: ShopQuery = {
@@ -20,10 +19,6 @@ export const emptyShopQuery: ShopQuery = {
   category: "all",
   sort: "edited",
 };
-
-function isCategory(value: string): value is ShopCategory {
-  return categories.some((category) => category === value);
-}
 
 function isSort(value: string): value is ShopSort {
   return sorts.some((sort) => sort === value);
@@ -42,8 +37,8 @@ export function parseShopQuery(input: {
     };
   }
 
-  const category = input.category?.trim() || "all";
-  if (!isCategory(category)) {
+  const category = (input.category ?? "").trim().toLowerCase() || "all";
+  if (category !== "all" && !isSlug(category)) {
     return { ok: false, message: "That category is not in this catalogue." };
   }
 

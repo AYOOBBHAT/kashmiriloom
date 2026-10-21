@@ -1,12 +1,12 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
-import { availabilityLabel, collectionLabels, collections } from "@/data/catalog";
+import { notFound, redirect } from "next/navigation";
+import { availabilityLabel } from "@/data/catalog";
 import { sampleProductSlugs } from "@/data/sample-products";
 import { formatInrFromPaise } from "@/lib/money";
 import {
-  getProductBySlug,
+  getPublicProductRoute,
   listRelatedProducts,
   withCatalogue,
 } from "@/lib/products/repository";
@@ -26,33 +26,39 @@ export function generateStaticParams() {
 
 export async function generateMetadata({ params }: ProductPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const result = await withCatalogue(() => getProductBySlug(slug));
-  if (!result.ok || !result.data) {
+  const result = await withCatalogue(() => getPublicProductRoute(slug));
+  if (!result.ok || result.data.kind !== "product") {
     return { title: "Shawl" };
   }
   return {
-    title: result.data.name,
-    description: `${result.data.summary} Sample price ${formatInrFromPaise(result.data.pricePaise)}.`,
+    title: result.data.product.name,
+    description: `${result.data.product.summary} Sample price ${formatInrFromPaise(result.data.product.pricePaise)}.`,
   };
 }
 
 async function ProductDetail({ params }: ProductPageProps) {
   const { slug } = await params;
-  const result = await withCatalogue(() => getProductBySlug(slug));
+  const result = await withCatalogue(() => getPublicProductRoute(slug));
   if (!result.ok) {
     return <CatalogueProblem problem={result.problem} />;
   }
-  if (!result.data) {
+  if (result.data.kind === "redirect") {
+    redirect(`/products/${result.data.slug}`);
+  }
+  if (result.data.kind === "missing") {
     notFound();
   }
 
-  const product = result.data;
+  const product = result.data.product;
   const relatedResult = await withCatalogue(() =>
     listRelatedProducts(product.category, product.slug),
   );
-  const collection = collections.find((item) => item.id === product.category);
   const facts = [
     product.material ? { term: "Material", detail: product.material } : null,
+    product.color ? { term: "Colour", detail: product.color } : null,
+    product.weave ? { term: "Weave", detail: product.weave } : null,
+    product.embroidery ? { term: "Embroidery", detail: product.embroidery } : null,
+    product.size ? { term: "Size", detail: product.size } : null,
     product.dimensions ? { term: "Dimensions", detail: product.dimensions } : null,
     product.care ? { term: "Care", detail: product.care } : null,
   ].filter((fact) => fact !== null);
@@ -66,17 +72,12 @@ async function ProductDetail({ params }: ProductPageProps) {
               Shop
             </Link>
           </li>
-          {collection ? (
-            <li className="flex items-center gap-2">
+          <li className="flex items-center gap-2">
               <span aria-hidden="true">/</span>
-              <Link
-                href={`/collections/${collection.slug}`}
-                className="underline decoration-gold underline-offset-4"
-              >
-                {collection.name}
+              <Link href={`/collections/${product.category}`} className="underline decoration-gold underline-offset-4">
+                {product.categoryName}
               </Link>
             </li>
-          ) : null}
           <li className="flex items-center gap-2">
             <span aria-hidden="true">/</span>
             <span className="text-ink">{product.name}</span>
@@ -88,7 +89,7 @@ async function ProductDetail({ params }: ProductPageProps) {
         <ProductGallery images={product.images} name={product.name} />
         <div>
           <p className="text-[0.72rem] font-semibold uppercase tracking-[0.28em] text-burgundy">
-            {collectionLabels[product.category]}
+            {product.categoryName}
           </p>
           <h1 className="mt-3 font-serif text-4xl leading-tight text-balance text-forest sm:text-6xl">
             {product.name}
@@ -112,16 +113,9 @@ async function ProductDetail({ params }: ProductPageProps) {
                 Category
               </dt>
               <dd className="mt-1 text-base text-ink">
-                {collection ? (
-                  <Link
-                    href={`/collections/${collection.slug}`}
-                    className="underline decoration-gold underline-offset-4"
-                  >
-                    {collection.name}
-                  </Link>
-                ) : (
-                  collectionLabels[product.category]
-                )}
+                <Link href={`/collections/${product.category}`} className="underline decoration-gold underline-offset-4">
+                  {product.categoryName}
+                </Link>
               </dd>
             </div>
             <div>
@@ -154,6 +148,22 @@ async function ProductDetail({ params }: ProductPageProps) {
               </div>
             ))}
           </dl>
+          {product.variants.length > 0 ? (
+            <div className="mt-8">
+              <h2 className="text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-burgundy">Options</h2>
+              <ul className="mt-3 flex flex-col gap-2">
+                <li className="text-base text-ink">{product.variantLabel || product.name} · this shawl</li>
+                {product.variants.map((variant) => (
+                  <li key={variant.slug}>
+                    <Link href={`/products/${variant.slug}`} className="text-forest underline decoration-gold underline-offset-4">
+                      {variant.label}
+                      {variant.available ? "" : " · unavailable"}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
           <AddToBag slug={product.slug} name={product.name} available={product.available} />
         </div>
       </div>

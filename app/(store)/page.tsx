@@ -11,7 +11,9 @@ export default function Home() {
   return (
     <>
       <Hero />
-      <CollectionGrid />
+      <Suspense fallback={<CatalogueLoading label="Loading the collections." />}>
+        <CollectionGrid />
+      </Suspense>
       <Suspense fallback={<CatalogueLoading label="Loading the featured shawls." />}>
         <FeaturedShawls />
       </Suspense>

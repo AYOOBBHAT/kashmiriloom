@@ -2,7 +2,6 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { collectionLabels } from "@/data/catalog";
 import { CatalogueAccessError } from "@/lib/catalogue-error";
 import { formatInrFromPaise } from "@/lib/money";
 import { LOW_STOCK_AT } from "@/lib/products/admin-query";
@@ -44,8 +43,8 @@ function ProductLine({ product }: { product: AdminListItem }) {
         {product.name}
       </Link>
       <p className="mt-1 text-sm text-muted">
-        {collectionLabels[product.category]} · {formatInrFromPaise(product.pricePaise)} · quantity {product.stockQuantity}
-        {product.active ? "" : " · inactive"}
+        {product.categoryName} · {formatInrFromPaise(product.pricePaise)} · quantity {product.stockQuantity}
+        {product.lowStock ? " · low" : ""} · {product.status}
       </p>
     </li>
   );

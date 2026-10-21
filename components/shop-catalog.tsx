@@ -2,9 +2,8 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { collections, type CollectionId } from "@/data/catalog";
 import type { CatalogueProblem } from "@/lib/catalogue-error";
-import { shopHref, type ShopCategory, type ShopQuery, type ShopSort } from "@/lib/shop";
+import { shopHref, type ShopQuery, type ShopSort } from "@/lib/shop";
 import type { ProductDto } from "@/lib/products/types";
 import { CatalogueProblem as CatalogueProblemPanel } from "@/components/catalogue-status";
 import { ProductCard } from "@/components/product-card";
@@ -23,7 +22,13 @@ type ShopCatalogProps = {
   invalidMessage: string | null;
 };
 
-export function ShopCatalog({ products, query, problem, invalidMessage }: ShopCatalogProps) {
+export function ShopCatalog({
+  products,
+  query,
+  problem,
+  invalidMessage,
+  categories,
+}: ShopCatalogProps & { categories: { slug: string; name: string }[] }) {
   const router = useRouter();
   const [search, setSearch] = useState(query.search);
   const [seenSearch, setSeenSearch] = useState(query.search);
@@ -115,14 +120,14 @@ export function ShopCatalog({ products, query, problem, invalidMessage }: ShopCa
             checked={query.category === "all"}
             onChange={() => replace({ ...query, search, category: "all" })}
           />
-          {collections.map((collection) => (
+          {categories.map((category) => (
             <CategoryOption
-              key={collection.slug}
+              key={category.slug}
               name="shop-category"
-              value={collection.id}
-              label={collection.name}
-              checked={query.category === collection.id}
-              onChange={() => replace({ ...query, search, category: collection.id })}
+              value={category.slug}
+              label={category.name}
+              checked={query.category === category.slug}
+              onChange={() => replace({ ...query, search, category: category.slug })}
             />
           ))}
         </div>
@@ -193,7 +198,7 @@ function CategoryOption({
   onChange,
 }: {
   name: string;
-  value: ShopCategory | CollectionId;
+  value: string;
   label: string;
   checked: boolean;
   onChange: () => void;

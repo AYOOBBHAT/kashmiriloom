@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import Link from "next/link";
-import { collectionLabels, primaryNav } from "@/data/catalog";
+import { primaryNav } from "@/data/catalog";
 import { matchesCatalogueSearch } from "@/lib/shop";
 import { formatInrFromPaise } from "@/lib/money";
 import { useCatalogue } from "@/lib/catalogue-store";
@@ -78,7 +78,7 @@ export function SiteHeader() {
           KashmiriLoom
         </Link>
 
-        <nav className="hidden flex-1 items-center justify-center gap-8 md:flex" aria-label="Primary">
+        <nav className="hidden min-w-0 flex-1 flex-wrap items-center justify-center gap-x-6 gap-y-2 md:flex" aria-label="Primary">
           {primaryNav.map((item) => (
             <Link
               key={item.href}
@@ -86,6 +86,15 @@ export function SiteHeader() {
               className="text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-forest hover:text-burgundy"
             >
               {item.label}
+            </Link>
+          ))}
+          {catalogue.categories.map((category) => (
+            <Link
+              key={category.slug}
+              href={`/collections/${category.slug}`}
+              className="text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-forest hover:text-burgundy"
+            >
+              {category.name}
             </Link>
           ))}
           <Link href="/account" className="text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-forest hover:text-burgundy">
@@ -149,6 +158,16 @@ export function SiteHeader() {
               {item.label}
             </Link>
           ))}
+          {catalogue.categories.map((category) => (
+            <Link
+              key={category.slug}
+              href={`/collections/${category.slug}`}
+              onClick={() => setMenuOpen(false)}
+              className="font-serif text-4xl text-forest"
+            >
+              {category.name}
+            </Link>
+          ))}
           <Link href="/account" onClick={() => setMenuOpen(false)} className="font-serif text-4xl text-forest">
             Account
           </Link>
@@ -198,7 +217,7 @@ export function SiteHeader() {
               >
                 <span>
                   <span className="block font-serif text-2xl text-forest">{product.name}</span>
-                  <span className="text-sm text-muted">{collectionLabels[product.category]}</span>
+                  <span className="text-sm text-muted">{product.categoryName}</span>
                 </span>
                 <span className="shrink-0 text-sm text-ink">{formatInrFromPaise(product.pricePaise)}</span>
               </Link>

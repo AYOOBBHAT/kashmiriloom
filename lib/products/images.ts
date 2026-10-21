@@ -1,4 +1,4 @@
-import { collections, type CollectionId } from "@/data/catalog";
+import { collections } from "@/data/catalog";
 
 export const LOCAL_IMAGES = new Set<string>([
   "/images/shawl-nishat.jpg",
@@ -17,7 +17,7 @@ export const LOCAL_IMAGES = new Set<string>([
 export function publicImage(
   url: string,
   alt: string,
-  category: CollectionId,
+  category: string,
 ): { src: string; alt: string } {
   const collection = collections.find((item) => item.id === category);
   const fallback = collection

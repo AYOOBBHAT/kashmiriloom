@@ -4,6 +4,7 @@ import { Container } from "@/components/container";
 import { CatalogueLoading } from "@/components/catalogue-status";
 import { SectionHeading } from "@/components/section-heading";
 import { ShopCatalog } from "@/components/shop-catalog";
+import { listPublicCategories } from "@/lib/categories/public";
 import { searchProducts, withCatalogue } from "@/lib/products/repository";
 import { emptyShopQuery, parseShopQuery } from "@/lib/shop";
 
@@ -36,11 +37,16 @@ async function ShopResults({ searchParams }: ShopPageProps) {
         query={emptyShopQuery}
         problem={null}
         invalidMessage={parsed.message}
+        categories={[]}
       />
     );
   }
 
-  const result = await withCatalogue(() => searchProducts(parsed.query));
+  const [result, categories] = await Promise.all([
+    withCatalogue(() => searchProducts(parsed.query)),
+    withCatalogue(() => listPublicCategories()),
+  ]);
+  const categoryList = categories.ok ? categories.data : [];
   if (!result.ok) {
     return (
       <ShopCatalog
@@ -48,6 +54,7 @@ async function ShopResults({ searchParams }: ShopPageProps) {
         query={parsed.query}
         problem={result.problem}
         invalidMessage={null}
+        categories={categoryList}
       />
     );
   }
@@ -58,6 +65,7 @@ async function ShopResults({ searchParams }: ShopPageProps) {
       query={parsed.query}
       problem={null}
       invalidMessage={null}
+      categories={categoryList}
     />
   );
 }

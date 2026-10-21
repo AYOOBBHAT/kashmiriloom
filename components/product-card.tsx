@@ -1,6 +1,5 @@
 import Image from "next/image";
 import Link from "next/link";
-import { collectionLabels } from "@/data/catalog";
 import { formatInrFromPaise } from "@/lib/money";
 import type { ProductDto } from "@/lib/products/types";
 
@@ -31,7 +30,7 @@ export function ProductCard({ product, featured = false }: ProductCardProps) {
           />
         </div>
         <p className="mt-5 text-[0.72rem] font-semibold uppercase tracking-[0.2em] text-burgundy">
-          {collectionLabels[product.category]}
+          {product.categoryName}
         </p>
         <h3 className="mt-2 font-serif text-3xl text-forest">{product.name}</h3>
         <p className="mt-2 max-w-md text-base leading-relaxed text-muted">{product.summary}</p>

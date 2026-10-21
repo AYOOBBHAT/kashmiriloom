@@ -27,12 +27,12 @@ export function DeactivateButton({ id, name }: { id: string; name: string }) {
         onClick={() => setOpen(true)}
         className="inline-flex min-h-12 items-center text-sm text-burgundy underline decoration-gold underline-offset-4"
       >
-        Deactivate
+        Archive
       </button>
       {message ? <p className="text-sm text-muted">{message}</p> : null}
-      <Dialog open={open} title={`Deactivate ${name}`} onClose={() => setOpen(false)}>
+      <Dialog open={open} title={`Archive ${name}`} onClose={() => setOpen(false)}>
         <p className="text-base leading-relaxed text-ink">
-          This hides the shawl from the shop. The catalogue record stays, so a later order can still refer to it.
+          This archives the shawl and hides it from the shop. The catalogue record stays, so past orders still refer to it.
           You can make it active again from the edit page.
         </p>
         <div className="mt-6 flex flex-wrap gap-3">
@@ -42,7 +42,7 @@ export function DeactivateButton({ id, name }: { id: string; name: string }) {
             disabled={pending}
             className="inline-flex min-h-12 items-center justify-center bg-burgundy px-5 text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-ivory hover:bg-forest disabled:opacity-60"
           >
-            {pending ? "Deactivating…" : "Deactivate"}
+            {pending ? "Archiving…" : "Archive"}
           </button>
           <button
             type="button"

@@ -10,6 +10,7 @@
     "test:orders": "node --conditions=react-server --experimental-strip-types --import ./scripts/register.mjs --test tests/orders.test.ts",
     "test:payments": "node --conditions=react-server --experimental-strip-types --import ./scripts/register.mjs --test tests/payments.test.ts",
     "test:customers": "node --conditions=react-server --experimental-strip-types --import ./scripts/register.mjs --test tests/customers.test.ts",
+    "test:catalogue": "node --conditions=react-server --experimental-strip-types --import ./scripts/register.mjs --test tests/catalogue-admin.test.ts",
     "seed": "node --conditions=react-server --experimental-strip-types --import ./scripts/register.mjs scripts/seed-products.ts",
     "admin:bootstrap": "node --conditions=react-server --experimental-strip-types --import ./scripts/register.mjs scripts/bootstrap-admin.ts"
   },

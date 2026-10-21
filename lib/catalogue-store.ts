@@ -5,15 +5,19 @@ import type { ProductDto } from "@/lib/products/types";
 
 export type CatalogueStatus = "loading" | "ready" | "unavailable";
 
+export type CatalogueNavCategory = { slug: string; name: string };
+
 export type CatalogueSnapshot = {
   status: CatalogueStatus;
   products: ProductDto[];
+  categories: CatalogueNavCategory[];
   message: string | null;
 };
 
 const INITIAL: CatalogueSnapshot = {
   status: "loading",
   products: [],
+  categories: [],
   message: null,
 };
 
@@ -24,7 +28,10 @@ function sameSnapshot(left: CatalogueSnapshot, right: CatalogueSnapshot): boolea
   if (left.status !== right.status || left.message !== right.message) {
     return false;
   }
-  if (left.products.length !== right.products.length) {
+  if (left.products.length !== right.products.length || left.categories.length !== right.categories.length) {
+    return false;
+  }
+  if (left.categories.some((category, index) => right.categories[index]?.slug !== category.slug)) {
     return false;
   }
   return left.products.every((product, index) => {
@@ -34,7 +41,9 @@ function sameSnapshot(left: CatalogueSnapshot, right: CatalogueSnapshot): boolea
       other.pricePaise === product.pricePaise &&
       other.available === product.available &&
       other.name === product.name &&
-      other.stockQuantity === product.stockQuantity
+      other.stockQuantity === product.stockQuantity &&
+      other.image === product.image &&
+      other.categoryName === product.categoryName
     );
   });
 }

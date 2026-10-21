@@ -10,6 +10,7 @@ import { CatalogueAccessError } from "@/lib/catalogue-error";
 import { uploadCatalogueImage } from "@/lib/cloudinary";
 import {
   AdminAccessError,
+  CategoryReferenceError,
   DuplicateProductError,
   createAdminProduct,
   deactivateAdminProduct,
@@ -24,9 +25,11 @@ export type UploadState = { message: string; url: string };
 function imagesFromForm(formData: FormData) {
   const urls = formData.getAll("imageUrl");
   const alts = formData.getAll("imageAlt");
+  const primary = Number(formData.get("primaryImage"));
   return urls.map((url, index) => ({
     url,
     alt: alts[index] ?? "",
+    primary: index === primary,
   }));
 }
 
@@ -66,17 +69,27 @@ export async function saveProduct(
     name: formData.get("name"),
     slug: formData.get("slug"),
     description: formData.get("description"),
+    shortDescription: formData.get("shortDescription"),
     category: formData.get("category"),
+    collectionSlugs: formData.getAll("collectionSlug"),
     priceRupees: formData.get("priceRupees"),
     compareAtRupees: formData.get("compareAtRupees"),
     sku: formData.get("sku"),
     stockQuantity: formData.get("stockQuantity"),
-    active: formData.get("active") === "on",
+    status: formData.get("status"),
     featured: formData.get("featured") === "on",
     images: imagesFromForm(formData),
     material: formData.get("material"),
     dimensions: formData.get("dimensions"),
     care: formData.get("care"),
+    color: formData.get("color"),
+    weave: formData.get("weave"),
+    embroidery: formData.get("embroidery"),
+    size: formData.get("size"),
+    variantGroup: formData.get("variantGroup"),
+    variantLabel: formData.get("variantLabel"),
+    expectedUpdatedAt: formData.get("expectedUpdatedAt"),
+    linkSourceId: formData.get("linkSourceId"),
   });
   if (!parsed.ok) {
     return { message: parsed.message, errors: parsed.errors };
@@ -102,6 +115,9 @@ export async function saveProduct(
         errors: { [error.field]: error.message },
       };
     }
+    if (error instanceof CategoryReferenceError) {
+      return { message: error.message, errors: { category: error.message } };
+    }
     if (error instanceof AdminAccessError) {
       redirect("/admin/login");
     }
@@ -122,7 +138,7 @@ export async function deactivateProduct(id: string): Promise<{ message: string }
     revalidatePath("/shop");
     revalidatePath("/admin");
     revalidatePath("/admin/products");
-    return { message: "The shawl is now inactive and hidden from the shop." };
+    return { message: "The shawl is archived and hidden from the shop. The record stays, including any past orders." };
   } catch (error) {
     if (error instanceof AdminAccessError) {
       redirect("/admin/login");

@@ -1,24 +1,18 @@
-import type { CollectionId } from "@/data/catalog";
+import { isSlug } from "@/lib/catalogue/slug";
 
 export const ADMIN_PAGE_SIZE = 10;
 export const LOW_STOCK_AT = 3;
 
-export type AdminStatusFilter = "all" | "active" | "inactive";
-export type AdminCategoryFilter = CollectionId | "all";
+export type AdminStatusFilter = "all" | "active" | "draft" | "archived";
 
 export type AdminListQuery = {
   search: string;
-  category: AdminCategoryFilter;
+  category: string;
   status: AdminStatusFilter;
   page: number;
 };
 
-const categories: AdminCategoryFilter[] = ["all", "kani", "embroidered", "everyday"];
-const statuses: AdminStatusFilter[] = ["all", "active", "inactive"];
-
-function isCategory(value: string): value is AdminCategoryFilter {
-  return categories.some((category) => category === value);
-}
+const statuses: AdminStatusFilter[] = ["all", "active", "draft", "archived"];
 
 function isStatus(value: string): value is AdminStatusFilter {
   return statuses.some((status) => status === value);
@@ -34,11 +28,12 @@ export function parseAdminListQuery(input: {
   if (search.length > 80) {
     return { ok: false, message: "Search must be 80 characters or fewer." };
   }
-  const category = input.category?.trim() || "all";
-  if (!isCategory(category)) {
+  const category = (input.category ?? "").trim().toLowerCase() || "all";
+  if (category !== "all" && !isSlug(category)) {
     return { ok: false, message: "That category is not in this catalogue." };
   }
-  const status = input.status?.trim() || "all";
+  const rawStatus = input.status?.trim() || "all";
+  const status = rawStatus === "inactive" ? "archived" : rawStatus;
   if (!isStatus(status)) {
     return { ok: false, message: "That status filter is not available." };
   }

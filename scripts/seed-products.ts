@@ -7,6 +7,7 @@
  * Repeating the seed writes the sample price, sample inventory, copy, and featured flag again.
  * It does not turn a hidden sample product back on.
  */
+import { ensureCatalogueCategories } from "@/lib/categories/seed";
 import { sampleProducts } from "@/data/sample-products";
 import { CatalogueAccessError, redactSecrets } from "@/lib/catalogue-error";
 import { disconnectDatabase, connectToDatabase } from "@/lib/mongodb";
@@ -30,7 +31,10 @@ async function main() {
   );
 
   await connectToDatabase();
-  await Product.createIndexes();
+  await ensureCatalogueCategories();
+  console.log(
+    "Category records were inserted only when missing. Product and category indexes were requested on this database. Confirm those indexes on the production Atlas cluster if this command used a different database.",
+  );
 
   for (const sample of sampleProducts) {
     const existing = await Product.findOne({ slug: sample.slug }).select("sku active").lean<{

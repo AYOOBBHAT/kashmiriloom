@@ -1,8 +1,14 @@
-import type { CollectionId } from "@/data/catalog";
-
 export type ProductImage = {
   src: string;
   alt: string;
+};
+
+export type ProductVariantChoice = {
+  slug: string;
+  name: string;
+  label: string;
+  pricePaise: number;
+  available: boolean;
 };
 
 /** Plain catalogue record safe to pass from the server into client components. */
@@ -11,7 +17,8 @@ export type ProductDto = {
   name: string;
   description: string;
   summary: string;
-  category: CollectionId;
+  category: string;
+  categoryName: string;
   pricePaise: number;
   compareAtPricePaise: number | null;
   images: ProductImage[];
@@ -24,4 +31,10 @@ export type ProductDto = {
   material?: string;
   dimensions?: string;
   care?: string;
+  color?: string;
+  weave?: string;
+  embroidery?: string;
+  size?: string;
+  variantLabel?: string;
+  variants: ProductVariantChoice[];
 };
