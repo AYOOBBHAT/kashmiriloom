@@ -42,7 +42,8 @@ export function Hero() {
             src="/images/hero-shawl.jpg"
             alt="A fringed Kashmiri shawl in burgundy, forest green, ivory, and gold paisley, draped over a dark wood chair."
             fill
-            priority
+            preload
+            quality={60}
             sizes="(min-width: 1024px) 58vw, 100vw"
             className="object-cover"
           />

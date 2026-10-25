@@ -62,10 +62,6 @@ async function readCategories(): Promise<{ stored: boolean; active: PublicCatego
   await io();
   try {
     await connectToDatabase();
-    const count = await Category.countDocuments({});
-    if (count === 0) {
-      return { stored: false, active: fallbackList() };
-    }
     const docs = await Category.find({ active: true })
       .select("slug name description imageUrl imageAlt displayOrder")
       .sort({ displayOrder: 1, name: 1 })
@@ -80,7 +76,14 @@ async function readCategories(): Promise<{ stored: boolean; active: PublicCatego
           displayOrder: number;
         }>
       >();
-    return { stored: true, active: docs.map(toPublic) };
+    if (docs.length > 0) {
+      return { stored: true, active: docs.map(toPublic) };
+    }
+    const count = await Category.countDocuments({});
+    if (count === 0) {
+      return { stored: false, active: fallbackList() };
+    }
+    return { stored: true, active: [] };
   } catch (error) {
     if (error instanceof CatalogueAccessError) {
       throw error;

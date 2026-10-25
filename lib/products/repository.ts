@@ -138,12 +138,14 @@ async function readProducts(filter: Record<string, unknown>, sort: ShopSort, lim
   await io();
   try {
     await connectToDatabase();
-    const names = await categoryNameMap();
-    const docs = await Product.find({ ...filter, active: true })
-      .select(publicFields)
-      .sort(sortSpec(sort))
-      .limit(limit)
-      .lean<ProductRecord[]>();
+    const [names, docs] = await Promise.all([
+      categoryNameMap(),
+      Product.find({ ...filter, active: true })
+        .select(publicFields)
+        .sort(sortSpec(sort))
+        .limit(limit)
+        .lean<ProductRecord[]>(),
+    ]);
     return docs.flatMap((doc) => {
       const product = toDto(doc, names);
       return product ? [product] : [];

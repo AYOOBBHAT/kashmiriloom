@@ -13,6 +13,7 @@ export function Craftsmanship() {
                 src="/images/craft-loom.jpg"
                 alt="A wooden handloom holding a partly woven burgundy shawl with gold paisleys, with skeins of yarn in the foreground."
                 fill
+                quality={60}
                 sizes="(min-width: 1024px) 42vw, 100vw"
                 className="object-cover"
               />

@@ -21,6 +21,7 @@ export function ProductCard({ product, featured = false }: ProductCardProps) {
             src={product.image}
             alt={product.imageAlt}
             fill
+            quality={60}
             sizes={
               featured
                 ? "(min-width: 640px) 66vw, 100vw"

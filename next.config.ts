@@ -15,6 +15,7 @@ const cloudinaryHost =
 const nextConfig: NextConfig = {
   images: {
     remotePatterns: cloudinaryHost,
+    qualities: [60, 75],
   },
   experimental: {
     agentFeedback: true,

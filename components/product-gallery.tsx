@@ -25,7 +25,8 @@ export function ProductGallery({ images, name }: ProductGalleryProps) {
           src={current.src}
           alt={current.alt}
           fill
-          priority={safeIndex === 0}
+          preload={safeIndex === 0}
+          quality={60}
           sizes="(min-width: 1024px) 48vw, 100vw"
           className="object-cover"
         />
