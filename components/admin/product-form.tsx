@@ -2,7 +2,8 @@
 
 import { useActionState, useId, useState } from "react";
 import { useFormStatus } from "react-dom";
-import { uploadProductImage, type ProductFormState } from "@/app/admin/actions";
+import { uploadCatalogueImageFile } from "@/components/admin/direct-upload";
+import type { ProductFormState } from "@/app/admin/actions";
 import type { ProductStatus } from "@/lib/products/status";
 
 type ImageRow = { key: string; url: string; alt: string; primary: boolean };
@@ -162,9 +163,7 @@ export function ProductForm({
     }
     setUploading(true);
     setUploadMessage("");
-    const data = new FormData();
-    data.set("file", file);
-    const result = await uploadProductImage({ message: "", url: "" }, data);
+    const result = await uploadCatalogueImageFile(file);
     setUploading(false);
     if (!result.url) {
       setUploadMessage(result.message);
@@ -419,6 +418,7 @@ export function ProductForm({
             <input
               id={`${formId}-upload`}
               type="file"
+              form="catalogue-file-upload"
               accept="image/jpeg,image/png,image/webp"
               disabled={uploading || images.length >= 6}
               onChange={(event) => {

@@ -7,7 +7,8 @@ import { checkAdminCredentials } from "@/lib/auth/credentials";
 import { clientAddress } from "@/lib/auth/rate-limit";
 import { createAdminSession, destroyAdminSession, getCurrentAdmin } from "@/lib/auth/session";
 import { CatalogueAccessError } from "@/lib/catalogue-error";
-import { uploadCatalogueImage } from "@/lib/cloudinary";
+import { issueCatalogueUploadGrant } from "@/lib/cloudinary";
+import type { CatalogueUploadGrant } from "@/lib/catalogue/upload-grant";
 import {
   AdminAccessError,
   CategoryReferenceError,
@@ -151,28 +152,20 @@ export async function deactivateProduct(id: string): Promise<{ message: string }
   }
 }
 
-export async function uploadProductImage(
-  _previous: UploadState,
-  formData: FormData,
-): Promise<UploadState> {
-  const file = formData.get("file");
-  if (!(file instanceof File) || file.size === 0) {
-    return { message: "Choose an image file.", url: "" };
-  }
+export async function prepareCatalogueImageUpload(): Promise<
+  { ok: true; upload: CatalogueUploadGrant } | { ok: false; message: string }
+> {
   const admin = await getCurrentAdmin();
   if (!admin) {
     redirect("/admin/login");
   }
-  try {
-    const result = await uploadCatalogueImage(file);
-    if (!result.ok) {
-      return { message: result.message, url: "" };
-    }
-    return { message: "", url: result.url };
-  } catch (error) {
-    if (error instanceof CatalogueAccessError) {
-      return { message: error.message, url: "" };
-    }
-    throw error;
+  const upload = issueCatalogueUploadGrant();
+  if (!upload) {
+    return {
+      ok: false,
+      message:
+        "Cloudinary is not configured. Add CLOUDINARY_CLOUD_NAME, CLOUDINARY_API_KEY, and CLOUDINARY_API_SECRET on the server, or choose an existing photograph.",
+    };
   }
+  return { ok: true, upload };
 }

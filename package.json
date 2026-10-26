@@ -11,7 +11,7 @@
     "test:payments": "node --conditions=react-server --experimental-strip-types --import ./scripts/register.mjs --test tests/payments.test.ts",
     "test:customers": "node --conditions=react-server --experimental-strip-types --import ./scripts/register.mjs --test tests/customers.test.ts",
     "test:catalogue": "node --conditions=react-server --experimental-strip-types --import ./scripts/register.mjs --test tests/catalogue-admin.test.ts",
-    "test:visibility": "node --conditions=react-server --experimental-strip-types --import ./scripts/register.mjs --test tests/catalogue-visibility.test.ts",
+    "test:visibility": "node --conditions=react-server --experimental-strip-types --import ./scripts/register.mjs --test tests/catalogue-visibility.test.ts tests/catalogue-upload.test.ts",
     "test:limits": "node --conditions=react-server --experimental-strip-types --import ./scripts/register.mjs --test tests/rate-limits.test.ts",
     "test:collections": "node --conditions=react-server --experimental-strip-types --import ./scripts/register.mjs --test tests/collection-paths.test.ts",
     "test:seo": "node --conditions=react-server --experimental-strip-types --import ./scripts/register.mjs --test tests/seo.test.ts tests/structured-data.test.ts",

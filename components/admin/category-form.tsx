@@ -2,7 +2,7 @@
 
 import { useActionState, useId, useState } from "react";
 import { useFormStatus } from "react-dom";
-import { uploadProductImage, type UploadState } from "@/app/admin/actions";
+import { uploadCatalogueImageFile } from "@/components/admin/direct-upload";
 import type { CategoryFormState } from "@/app/admin/category-actions";
 
 const fieldClass =
@@ -57,9 +57,7 @@ export function CategoryForm({
     }
     setUploading(true);
     setUploadMessage("");
-    const data = new FormData();
-    data.set("file", file);
-    const result: UploadState = await uploadProductImage({ message: "", url: "" }, data);
+    const result = await uploadCatalogueImageFile(file);
     setUploading(false);
     if (!result.url) {
       setUploadMessage(result.message);
@@ -120,6 +118,7 @@ export function CategoryForm({
         {cloudinaryReady ? (
           <input
             type="file"
+            form="catalogue-file-upload"
             accept="image/jpeg,image/png,image/webp"
             disabled={uploading}
             onChange={(event) => {

@@ -1,9 +1,15 @@
 import "server-only";
 
 import { createHash } from "node:crypto";
+import {
+  CATALOGUE_IMAGE_FOLDER,
+  CATALOGUE_IMAGE_FORMATS,
+  MAX_CATALOGUE_IMAGE_BYTES,
+  type CatalogueUploadGrant,
+} from "@/lib/catalogue/upload-grant";
 import { isApprovedImageUrl } from "@/lib/products/images";
 
-const MAX_BYTES = 4_000_000;
+const MAX_BYTES = MAX_CATALOGUE_IMAGE_BYTES;
 
 function hasImageSignature(bytes: Uint8Array, type: string): boolean {
   if (type === "image/jpeg") {
@@ -38,6 +44,42 @@ export function cloudinaryConfigured(): boolean {
   return /^[a-z0-9_-]{1,64}$/i.test(cloud) && key.length > 0 && secret.length > 0;
 }
 
+export function catalogueUploadSignature(input: {
+  folder: string;
+  timestamp: number;
+  allowedFormats: string;
+  apiSecret: string;
+}): string {
+  return createHash("sha1")
+    .update(
+      `allowed_formats=${input.allowedFormats}&folder=${input.folder}&timestamp=${input.timestamp}${input.apiSecret}`,
+    )
+    .digest("hex");
+}
+
+export function issueCatalogueUploadGrant(now = Date.now()): CatalogueUploadGrant | null {
+  const cloudName = process.env.CLOUDINARY_CLOUD_NAME?.trim() ?? "";
+  const apiKey = process.env.CLOUDINARY_API_KEY?.trim() ?? "";
+  const apiSecret = process.env.CLOUDINARY_API_SECRET?.trim() ?? "";
+  if (!/^[a-z0-9_-]{1,64}$/i.test(cloudName) || apiKey.length === 0 || apiSecret.length === 0) {
+    return null;
+  }
+  const timestamp = Math.floor(now / 1000);
+  return {
+    cloudName,
+    apiKey,
+    timestamp,
+    folder: CATALOGUE_IMAGE_FOLDER,
+    allowedFormats: CATALOGUE_IMAGE_FORMATS,
+    signature: catalogueUploadSignature({
+      folder: CATALOGUE_IMAGE_FOLDER,
+      timestamp,
+      allowedFormats: CATALOGUE_IMAGE_FORMATS,
+      apiSecret,
+    }),
+  };
+}
+
 export async function uploadCatalogueImage(
   file: File,
 ): Promise<{ ok: true; url: string } | { ok: false; message: string }> {
@@ -63,16 +105,16 @@ export async function uploadCatalogueImage(
   }
 
   const timestamp = Math.floor(Date.now() / 1000);
-  const folder = "kashmiriloom";
-  const signature = createHash("sha1")
-    .update(`folder=${folder}&timestamp=${timestamp}${apiSecret}`)
-    .digest("hex");
+  const folder = CATALOGUE_IMAGE_FOLDER;
+  const allowedFormats = CATALOGUE_IMAGE_FORMATS;
+  const signature = catalogueUploadSignature({ folder, timestamp, allowedFormats, apiSecret });
   const body = new FormData();
   body.set("file", new File([bytes], "upload", { type: file.type }));
   body.set("api_key", apiKey);
   body.set("timestamp", String(timestamp));
   body.set("signature", signature);
   body.set("folder", folder);
+  body.set("allowed_formats", allowedFormats);
 
   const response = await fetch(`https://api.cloudinary.com/v1_1/${cloudName}/image/upload`, {
     method: "POST",
