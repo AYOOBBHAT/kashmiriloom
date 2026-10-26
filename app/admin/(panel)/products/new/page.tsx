@@ -101,7 +101,7 @@ async function NewProduct({ searchParams }: PageProps) {
         categories={categories}
         localImages={[...LOCAL_IMAGES]}
         cloudinaryReady={cloudinaryConfigured()}
-        saved={false}
+        notice=""
       />
     </>
   );

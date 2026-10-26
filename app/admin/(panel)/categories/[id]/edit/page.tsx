@@ -8,6 +8,7 @@ import { getManagedCategory } from "@/lib/categories/admin";
 import { CatalogueAccessError } from "@/lib/catalogue-error";
 import { cloudinaryConfigured } from "@/lib/cloudinary";
 import { LOCAL_IMAGES } from "@/lib/products/images";
+import { categorySaveNotice } from "@/lib/catalogue/visibility";
 import { AdminAccessError } from "@/lib/products/admin-repository";
 
 export const metadata: Metadata = { title: "Edit category" };
@@ -62,7 +63,7 @@ async function EditCategory({ params, searchParams }: PageProps) {
         }}
         localImages={[...LOCAL_IMAGES]}
         cloudinaryReady={cloudinaryConfigured()}
-        saved={raw.saved === "1"}
+        notice={raw.saved === "1" ? categorySaveNotice(category.active) : ""}
       />
     </>
   );

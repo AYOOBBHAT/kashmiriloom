@@ -33,13 +33,15 @@ function imagesFromForm(formData: FormData) {
   }));
 }
 
-function revalidateCatalogue(slug: string, category: string) {
-  revalidatePath("/");
-  revalidatePath("/shop");
+function revalidateCatalogue(slug: string, category: string, collections: string[]) {
+  revalidatePath("/", "layout");
   revalidatePath("/admin");
   revalidatePath("/admin/products");
   revalidatePath(`/products/${slug}`);
   revalidatePath(`/collections/${category}`);
+  for (const extra of collections) {
+    revalidatePath(`/collections/${extra}`);
+  }
 }
 
 export async function signIn(_previous: AuthFormState, formData: FormData): Promise<AuthFormState> {
@@ -103,10 +105,10 @@ export async function saveProduct(
       }
     } else {
       const createdId = await createAdminProduct(parsed.value);
-      revalidateCatalogue(parsed.value.slug, parsed.value.category);
+      revalidateCatalogue(parsed.value.slug, parsed.value.category, parsed.value.collectionSlugs);
       redirect(`/admin/products/${createdId}/edit?saved=1`);
     }
-    revalidateCatalogue(parsed.value.slug, parsed.value.category);
+    revalidateCatalogue(parsed.value.slug, parsed.value.category, parsed.value.collectionSlugs);
     redirect(`/admin/products/${id}/edit?saved=1`);
   } catch (error) {
     if (error instanceof DuplicateProductError) {
@@ -134,8 +136,7 @@ export async function deactivateProduct(id: string): Promise<{ message: string }
     if (!updated) {
       return { message: "That shawl is no longer in the catalogue." };
     }
-    revalidatePath("/");
-    revalidatePath("/shop");
+    revalidatePath("/", "layout");
     revalidatePath("/admin");
     revalidatePath("/admin/products");
     return { message: "The shawl is archived and hidden from the shop. The record stays, including any past orders." };

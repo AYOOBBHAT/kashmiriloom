@@ -36,14 +36,14 @@ export function CategoryForm({
   values,
   localImages,
   cloudinaryReady,
-  saved,
+  notice,
 }: {
   categoryId: string;
   action: (state: CategoryFormState, formData: FormData) => Promise<CategoryFormState>;
   values: CategoryFormValues;
   localImages: string[];
   cloudinaryReady: boolean;
-  saved: boolean;
+  notice: string;
 }) {
   const formId = useId();
   const [state, formAction] = useActionState(action, emptyState);
@@ -72,7 +72,7 @@ export function CategoryForm({
     <form action={formAction} className="mt-8 max-w-2xl space-y-6">
       <input type="hidden" name="expectedUpdatedAt" value={values.expectedUpdatedAt} />
       <input type="hidden" name="imageUrl" value={imageUrl} />
-      {saved && !state.message ? <p className="border border-gold px-4 py-3 text-sm text-forest" role="status">Saved.</p> : null}
+      {notice && !state.message ? <p className="border border-gold px-4 py-3 text-sm text-forest" role="status">{notice}</p> : null}
       {state.message ? <p className="border border-burgundy/40 px-4 py-3 text-sm text-burgundy" role="alert">{state.message}</p> : null}
       <div>
         <label htmlFor={`${formId}-name`} className="text-sm font-medium text-forest">Name</label>

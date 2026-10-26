@@ -101,7 +101,7 @@ export function ProductForm({
   categories,
   localImages,
   cloudinaryReady,
-  saved,
+  notice,
 }: {
   productId: string;
   action: (state: ProductFormState, formData: FormData) => Promise<ProductFormState>;
@@ -109,7 +109,7 @@ export function ProductForm({
   categories: CategoryOption[];
   localImages: string[];
   cloudinaryReady: boolean;
-  saved: boolean;
+  notice: string;
 }) {
   const formId = useId();
   const [state, formAction] = useActionState(action, emptyState);
@@ -181,9 +181,9 @@ export function ProductForm({
     <form action={formAction} className="mt-8 space-y-6">
       <input type="hidden" name="expectedUpdatedAt" value={values.expectedUpdatedAt} />
       <input type="hidden" name="linkSourceId" value={values.linkSourceId} />
-      {saved && !state.message ? (
+      {notice && !state.message ? (
         <p className="border border-gold bg-ivory px-4 py-3 text-sm text-forest" role="status">
-          Saved.
+          {notice}
         </p>
       ) : null}
       {state.message ? (

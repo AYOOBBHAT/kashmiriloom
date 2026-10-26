@@ -32,7 +32,7 @@ async function NewCategory() {
         values={{ name: "", slug: "", description: "", imageUrl: "", imageAlt: "", active: true, displayOrder: "0", expectedUpdatedAt: "" }}
         localImages={[...LOCAL_IMAGES]}
         cloudinaryReady={cloudinaryConfigured()}
-        saved={false}
+        notice=""
       />
     </>
   );

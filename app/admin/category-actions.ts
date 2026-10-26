@@ -15,8 +15,7 @@ import { AdminAccessError } from "@/lib/products/admin-repository";
 export type CategoryFormState = { message: string; errors: Record<string, string> };
 
 function revalidateCategories(slug?: string) {
-  revalidatePath("/");
-  revalidatePath("/shop");
+  revalidatePath("/", "layout");
   revalidatePath("/admin/categories");
   revalidatePath("/admin/products");
   if (slug) {

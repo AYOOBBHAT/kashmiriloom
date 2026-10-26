@@ -9,6 +9,7 @@ import { CatalogueAccessError } from "@/lib/catalogue-error";
 import { cloudinaryConfigured } from "@/lib/cloudinary";
 import { LOCAL_IMAGES } from "@/lib/products/images";
 import { paiseToRupeeInput } from "@/lib/products/validate";
+import { productSaveNotice } from "@/lib/catalogue/visibility";
 import { AdminAccessError, getAdminProduct } from "@/lib/products/admin-repository";
 
 export const metadata: Metadata = { title: "Edit shawl" };
@@ -78,7 +79,11 @@ async function EditProduct({ params, searchParams }: PageProps) {
       <p className="text-[0.72rem] font-semibold uppercase tracking-[0.28em] text-burgundy">Catalogue</p>
       <h1 className="mt-3 font-serif text-4xl text-forest sm:text-5xl">{product.name}</h1>
       <p className="mt-4 text-sm text-muted">
-        {product.status} · public address /products/{product.slug}
+        {product.status === "active"
+          ? `Active · public address /products/${product.slug}`
+          : product.status === "draft"
+            ? "Draft · in the admin list, hidden from the shop"
+            : "Archived · hidden from the shop"}
         {product.createdAt ? ` · created ${product.createdAt.slice(0, 10)}` : ""}
         {product.lowStock ? " · low catalogue quantity" : ""}
       </p>
@@ -98,7 +103,7 @@ async function EditProduct({ params, searchParams }: PageProps) {
         categories={categories}
         localImages={[...LOCAL_IMAGES]}
         cloudinaryReady={cloudinaryConfigured()}
-        saved={raw.saved === "1"}
+        notice={raw.saved === "1" ? productSaveNotice(product.status) : ""}
       />
     </>
   );

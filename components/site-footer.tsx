@@ -1,5 +1,8 @@
+import { Suspense } from "react";
 import Link from "next/link";
-import { collections, primaryNav } from "@/data/catalog";
+import { primaryNav } from "@/data/catalog";
+import { seedCategories } from "@/lib/categories/defaults";
+import { listPublicCategories } from "@/lib/categories/public";
 import { Container } from "@/components/container";
 import {
   BUSINESS_ADDRESS,
@@ -10,6 +13,28 @@ import {
   SUPPORT_PHONE_TEL,
   SUPPORT_WHATSAPP_URL,
 } from "@/lib/site/policies";
+
+function CollectionLinks({ categories }: { categories: { slug: string; name: string }[] }) {
+  if (categories.length === 0) {
+    return <p className="mt-4 text-base text-ivory/80">Collections appear here when a category is active.</p>;
+  }
+  return (
+    <ul className="mt-4 space-y-2">
+      {categories.map((category) => (
+        <li key={category.slug}>
+          <Link href={`/collections/${category.slug}`} className="text-base hover:text-gold">
+            {category.name}
+          </Link>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+async function PublicCollectionLinks() {
+  const categories = await listPublicCategories();
+  return <CollectionLinks categories={categories} />;
+}
 
 export function SiteFooter() {
   return (
@@ -40,15 +65,9 @@ export function SiteFooter() {
           <h2 className="text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-gold">
             Collections
           </h2>
-          <ul className="mt-4 space-y-2">
-            {collections.map((collection) => (
-              <li key={collection.id}>
-                <Link href={`/collections/${collection.slug}`} className="text-base hover:text-gold">
-                  {collection.name}
-                </Link>
-              </li>
-            ))}
-          </ul>
+          <Suspense fallback={<CollectionLinks categories={seedCategories} />}>
+            <PublicCollectionLinks />
+          </Suspense>
         </div>
         <div>
           <h2 className="text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-gold">
