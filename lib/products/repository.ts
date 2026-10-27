@@ -250,6 +250,11 @@ export async function getPublicProductRoute(slug: string): Promise<PublicProduct
 }
 
 async function variantChoicesFor(slug: string): Promise<ProductVariantChoice[]> {
+  "use cache";
+  cacheTag(PUBLIC_CATALOGUE_TAG);
+  cacheLife("minutes");
+  await io();
+  await connectToDatabase();
   const record = await Product.findOne({ slug, active: true }).select("variantGroup").lean<{ variantGroup?: string } | null>();
   return variantChoices(record?.variantGroup ?? "", slug);
 }

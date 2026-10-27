@@ -1,3 +1,5 @@
+"use client";
+
 import Image, { type ImageProps } from "next/image";
 import { cloudinaryImageLoader, isCloudinaryUploadUrl } from "@/lib/catalogue/cloudinary-delivery";
 

@@ -259,4 +259,16 @@ describe("catalogue visibility rules", () => {
     assert.equal("images" in client, false);
     assert.equal(client.pricePaise, 500000);
   });
+
+  test("caches the variant lookup before Mongoose reads the current time", () => {
+    const repository = readFileSync("lib/products/repository.ts", "utf8");
+    const start = repository.indexOf("async function variantChoicesFor");
+    const body = repository.slice(start, repository.indexOf("export function searchProducts"));
+    assert.match(body, /"use cache"/);
+    assert.match(body, /cacheTag\(PUBLIC_CATALOGUE_TAG\)/);
+    assert.match(body, /cacheLife\("minutes"\)/);
+    const ioAt = body.indexOf("await io()");
+    const queryAt = body.indexOf("Product.findOne");
+    assert.equal(ioAt > 0 && queryAt > ioAt, true);
+  });
 });
