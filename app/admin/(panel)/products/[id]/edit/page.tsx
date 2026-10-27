@@ -9,6 +9,7 @@ import { CatalogueAccessError } from "@/lib/catalogue-error";
 import { cloudinaryConfigured } from "@/lib/cloudinary";
 import { LOCAL_IMAGES } from "@/lib/products/images";
 import { paiseToRupeeInput } from "@/lib/products/validate";
+import { saveKind } from "@/lib/catalogue/form-feedback";
 import { productSaveNotice } from "@/lib/catalogue/visibility";
 import { AdminAccessError, getAdminProduct } from "@/lib/products/admin-repository";
 
@@ -103,7 +104,10 @@ async function EditProduct({ params, searchParams }: PageProps) {
         categories={categories}
         localImages={[...LOCAL_IMAGES]}
         cloudinaryReady={cloudinaryConfigured()}
-        notice={raw.saved === "1" ? productSaveNotice(product.status) : ""}
+        notice={(() => {
+          const saved = typeof raw.saved === "string" ? saveKind(raw.saved) : null;
+          return saved ? productSaveNotice(product.status, saved) : "";
+        })()}
       />
     </>
   );

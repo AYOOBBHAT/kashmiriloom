@@ -8,6 +8,7 @@ import { getManagedCategory } from "@/lib/categories/admin";
 import { CatalogueAccessError } from "@/lib/catalogue-error";
 import { cloudinaryConfigured } from "@/lib/cloudinary";
 import { LOCAL_IMAGES } from "@/lib/products/images";
+import { saveKind } from "@/lib/catalogue/form-feedback";
 import { categorySaveNotice } from "@/lib/catalogue/visibility";
 import { AdminAccessError } from "@/lib/products/admin-repository";
 
@@ -63,7 +64,10 @@ async function EditCategory({ params, searchParams }: PageProps) {
         }}
         localImages={[...LOCAL_IMAGES]}
         cloudinaryReady={cloudinaryConfigured()}
-        notice={raw.saved === "1" ? categorySaveNotice(category.active) : ""}
+        notice={(() => {
+          const saved = typeof raw.saved === "string" ? saveKind(raw.saved) : null;
+          return saved ? categorySaveNotice(category.active, saved) : "";
+        })()}
       />
     </>
   );

@@ -2,11 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { headers } from "next/headers";
-import { redirect } from "next/navigation";
+import { redirect, unstable_rethrow } from "next/navigation";
 import { checkAdminCredentials } from "@/lib/auth/credentials";
 import { clientAddress } from "@/lib/auth/rate-limit";
 import { createAdminSession, destroyAdminSession, getCurrentAdmin } from "@/lib/auth/session";
-import { CatalogueAccessError } from "@/lib/catalogue-error";
+import { CatalogueAccessError, redactSecrets } from "@/lib/catalogue-error";
+import { PRODUCT_SAVE_FAILED, failedProduct, type EnteredProduct } from "@/lib/catalogue/form-feedback";
 import { issueCatalogueUploadGrant } from "@/lib/cloudinary";
 import type { CatalogueUploadGrant } from "@/lib/catalogue/upload-grant";
 import {
@@ -20,7 +21,12 @@ import {
 import { validateProductDraft, type FieldErrors } from "@/lib/products/validate";
 
 export type AuthFormState = { message: string };
-export type ProductFormState = { message: string; errors: FieldErrors };
+export type ProductFormState = {
+  message: string;
+  errors: FieldErrors;
+  entered?: EnteredProduct;
+  attempt: number;
+};
 export type UploadState = { message: string; url: string };
 
 function imagesFromForm(formData: FormData) {
@@ -95,39 +101,39 @@ export async function saveProduct(
     linkSourceId: formData.get("linkSourceId"),
   });
   if (!parsed.ok) {
-    return { message: parsed.message, errors: parsed.errors };
+    return failedProduct(_previous, formData, parsed.message, parsed.errors);
   }
 
   try {
     if (id) {
       const updated = await updateAdminProduct(id, parsed.value);
       if (!updated) {
-        return { message: "That shawl is no longer in the catalogue.", errors: {} };
+        return failedProduct(_previous, formData, "That shawl is no longer in the catalogue.", {});
       }
     } else {
       const createdId = await createAdminProduct(parsed.value);
       revalidateCatalogue(parsed.value.slug, parsed.value.category, parsed.value.collectionSlugs);
-      redirect(`/admin/products/${createdId}/edit?saved=1`);
+      redirect(`/admin/products/${createdId}/edit?saved=created`);
     }
     revalidateCatalogue(parsed.value.slug, parsed.value.category, parsed.value.collectionSlugs);
-    redirect(`/admin/products/${id}/edit?saved=1`);
+    redirect(`/admin/products/${id}/edit?saved=updated`);
   } catch (error) {
+    unstable_rethrow(error);
     if (error instanceof DuplicateProductError) {
-      return {
-        message: error.message,
-        errors: { [error.field]: error.message },
-      };
+      return failedProduct(_previous, formData, error.message, { [error.field]: error.message });
     }
     if (error instanceof CategoryReferenceError) {
-      return { message: error.message, errors: { category: error.message } };
+      return failedProduct(_previous, formData, error.message, { category: error.message });
     }
     if (error instanceof AdminAccessError) {
       redirect("/admin/login");
     }
     if (error instanceof CatalogueAccessError) {
-      return { message: error.message, errors: {} };
+      return failedProduct(_previous, formData, error.message, {});
     }
-    throw error;
+    const detail = error instanceof Error ? error.message : "Unknown error";
+    console.error(`Product save failed: ${redactSecrets(detail)}`);
+    return failedProduct(_previous, formData, PRODUCT_SAVE_FAILED, {});
   }
 }
 

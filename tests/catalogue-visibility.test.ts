@@ -3,6 +3,13 @@ import { readFileSync } from "node:fs";
 import { describe, test } from "node:test";
 import { validateCategoryDraft, DuplicateCategoryError } from "@/lib/categories/records";
 import {
+  CATEGORY_SAVE_FAILED,
+  PRODUCT_SAVE_FAILED,
+  failedCategory,
+  failedProduct,
+  saveKind,
+} from "@/lib/catalogue/form-feedback";
+import {
   categorySaveNotice,
   categoryShownPublicly,
   productSaveNotice,
@@ -68,8 +75,11 @@ describe("catalogue visibility rules", () => {
     if (hidden.ok) {
       assert.equal(categoryShownPublicly(hidden.value.active), false);
     }
-    assert.match(categorySaveNotice(true), /homepage/);
-    assert.match(categorySaveNotice(false), /stays off the shop/);
+    assert.match(categorySaveNotice(true, "created"), /Category created successfully/);
+    assert.match(categorySaveNotice(true, "created"), /active/);
+    assert.match(categorySaveNotice(false, "updated"), /Category updated successfully/);
+    assert.match(categorySaveNotice(false, "updated"), /inactive/);
+    assert.match(categorySaveNotice(false, "updated"), /hidden from public category listings/);
   });
 
   test("rejects a duplicate-style slug and a slug that is not a collection address", () => {
@@ -93,7 +103,9 @@ describe("catalogue visibility rules", () => {
     assert.equal(draft.value.featured, false);
     assert.equal(activeForStatus(draft.value.status), false);
     assert.equal(productShownPublicly(draft.value.status), false);
-    assert.match(productSaveNotice("draft"), /stays off the shop/);
+    assert.match(productSaveNotice("draft", "created"), /Product created successfully/);
+    assert.match(productSaveNotice("draft", "created"), /saved as a draft/);
+    assert.match(productSaveNotice("draft", "created"), /not visible in the public shop/);
   });
 
   test("lists an active product in its category and extra collections, and hides an archived one", () => {
@@ -114,8 +126,9 @@ describe("catalogue visibility rules", () => {
     if (archived.ok) {
       assert.equal(productShownPublicly(archived.value.status), false);
     }
-    assert.match(productSaveNotice("active"), /shop/);
-    assert.match(productSaveNotice("archived"), /hidden from the shop/);
+    assert.match(productSaveNotice("active", "updated"), /Product updated successfully/);
+    assert.match(productSaveNotice("active", "updated"), /available in the shop/);
+    assert.match(productSaveNotice("archived", "updated"), /hidden from the public shop/);
   });
 
   test("rejects a conflicting SKU shape, a missing image, and a collection that repeats the category", () => {
@@ -151,5 +164,55 @@ describe("catalogue visibility rules", () => {
     assert.match(repository, /active: true/);
     const publicCategories = readFileSync("lib/categories/public.ts", "utf8");
     assert.match(publicCategories, /Category\.find\(\{ active: true \}\)/);
+  });
+
+  test("keeps entered values when a save fails and only confirms a save after the write", () => {
+    const categoryForm = new FormData();
+    categoryForm.set("name", "Pashmina");
+    categoryForm.set("slug", "pashmina");
+    categoryForm.set("description", "Fine wool.");
+    categoryForm.set("displayOrder", "3");
+    categoryForm.set("active", "on");
+    const categoryFailure = failedCategory({ attempt: 0 }, categoryForm, "That category slug is already used.", {
+      slug: "That category slug is already used.",
+    });
+    assert.equal(categoryFailure.entered.slug, "pashmina");
+    assert.equal(categoryFailure.entered.active, true);
+    assert.equal(categoryFailure.attempt, 1);
+    assert.match(categoryFailure.errors.slug ?? "", /already used/);
+
+    const productForm = new FormData();
+    productForm.set("name", "Test shawl");
+    productForm.set("slug", "test-shawl");
+    productForm.set("sku", "KL-VIS-1");
+    productForm.set("status", "draft");
+    productForm.set("category", "pashmina");
+    productForm.set("priceRupees", "1250");
+    const duplicate = failedProduct({ attempt: 1 }, productForm, "That SKU is already used.", { sku: "That SKU is already used." });
+    assert.equal(duplicate.entered.sku, "KL-VIS-1");
+    assert.equal(duplicate.entered.status, "draft");
+    assert.equal(duplicate.attempt, 2);
+
+    const database = failedProduct({ attempt: 2 }, productForm, PRODUCT_SAVE_FAILED, {});
+    assert.match(database.message, /could not be saved/);
+    assert.equal(database.message.includes("mongodb"), false);
+    assert.equal(CATEGORY_SAVE_FAILED.includes("mongodb"), false);
+    assert.equal(saveKind("created"), "created");
+    assert.equal(saveKind("updated"), "updated");
+    assert.equal(saveKind("1"), null);
+
+    const products = readFileSync("app/admin/actions.ts", "utf8");
+    const categories = readFileSync("app/admin/category-actions.ts", "utf8");
+    assert.match(products, /saved=created/);
+    assert.match(products, /saved=updated/);
+    assert.match(products, /unstable_rethrow/);
+    assert.match(categories, /saved=created/);
+    assert.match(categories, /saved=updated/);
+    assert.match(categories, /unstable_rethrow/);
+    const productFormSource = readFileSync("components/admin/product-form.tsx", "utf8");
+    const categoryFormSource = readFileSync("components/admin/category-form.tsx", "utf8");
+    assert.match(productFormSource, /Saving\.\.\./);
+    assert.match(categoryFormSource, /role="alert"/);
+    assert.match(productFormSource, /disabled=\{waiting\}/);
   });
 });

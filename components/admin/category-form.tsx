@@ -1,14 +1,15 @@
 "use client";
 
-import { useActionState, useId, useState } from "react";
+import { useActionState, useEffect, useId, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { uploadCatalogueImageFile } from "@/components/admin/direct-upload";
+import { FormFeedback } from "@/components/admin/form-feedback";
 import type { CategoryFormState } from "@/app/admin/category-actions";
 
 const fieldClass =
   "mt-2 w-full border border-gold/80 bg-ivory px-3 py-3 text-base text-ink outline-none focus-visible:border-forest";
 
-const emptyState: CategoryFormState = { message: "", errors: {} };
+const emptyState: CategoryFormState = { message: "", errors: {}, attempt: 0 };
 
 export type CategoryFormValues = {
   name: string;
@@ -21,11 +22,12 @@ export type CategoryFormValues = {
   expectedUpdatedAt: string;
 };
 
-function SubmitButton({ label }: { label: string }) {
+function SubmitButton({ label, busy }: { label: string; busy: boolean }) {
   const { pending } = useFormStatus();
+  const waiting = pending || busy;
   return (
-    <button type="submit" disabled={pending} className="inline-flex min-h-12 items-center justify-center bg-burgundy px-6 text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-ivory hover:bg-forest disabled:opacity-60">
-      {pending ? "Saving…" : label}
+    <button type="submit" disabled={waiting} aria-busy={pending} className="inline-flex min-h-12 items-center justify-center bg-burgundy px-6 text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-ivory hover:bg-forest disabled:opacity-60">
+      {pending ? "Saving..." : label}
     </button>
   );
 }
@@ -46,10 +48,19 @@ export function CategoryForm({
   notice: string;
 }) {
   const formId = useId();
+  const uploadRef = useRef<HTMLParagraphElement>(null);
   const [state, formAction] = useActionState(action, emptyState);
   const [imageUrl, setImageUrl] = useState(values.imageUrl);
   const [uploadMessage, setUploadMessage] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [dismissNotice, setDismissNotice] = useState(false);
+  const fields = state.entered ?? values;
+
+  useEffect(() => {
+    if (uploadMessage) {
+      uploadRef.current?.focus();
+    }
+  }, [uploadMessage]);
 
   async function onUpload(file: File | undefined) {
     if (!file) {
@@ -67,38 +78,37 @@ export function CategoryForm({
   }
 
   return (
-    <form action={formAction} className="mt-8 max-w-2xl space-y-6">
-      <input type="hidden" name="expectedUpdatedAt" value={values.expectedUpdatedAt} />
+    <form key={state.attempt} action={formAction} onSubmit={() => { setDismissNotice(true); setUploadMessage(""); }} className="mt-8 max-w-2xl space-y-6">
+      <input type="hidden" name="expectedUpdatedAt" value={fields.expectedUpdatedAt} />
       <input type="hidden" name="imageUrl" value={imageUrl} />
-      {notice && !state.message ? <p className="border border-gold px-4 py-3 text-sm text-forest" role="status">{notice}</p> : null}
-      {state.message ? <p className="border border-burgundy/40 px-4 py-3 text-sm text-burgundy" role="alert">{state.message}</p> : null}
+      <FormFeedback notice={dismissNotice ? "" : notice} error={state.message} />
       <div>
         <label htmlFor={`${formId}-name`} className="text-sm font-medium text-forest">Name</label>
-        <input id={`${formId}-name`} name="name" defaultValue={values.name} required maxLength={80} className={fieldClass} />
-        {state.errors.name ? <p className="mt-2 text-sm text-burgundy">{state.errors.name}</p> : null}
+        <input id={`${formId}-name`} name="name" defaultValue={fields.name} required maxLength={80} aria-invalid={Boolean(state.errors.name)} aria-describedby={state.errors.name ? `${formId}-name-error` : undefined} className={fieldClass} />
+        {state.errors.name ? <p id={`${formId}-name-error`} className="mt-2 text-sm text-burgundy">{state.errors.name}</p> : null}
       </div>
       <div>
         <label htmlFor={`${formId}-slug`} className="text-sm font-medium text-forest">Slug</label>
-        <input id={`${formId}-slug`} name="slug" defaultValue={values.slug} required maxLength={80} className={fieldClass} />
-        <p className="mt-2 text-sm text-muted">Changing the slug keeps the old collection address working.</p>
-        {state.errors.slug ? <p className="mt-2 text-sm text-burgundy">{state.errors.slug}</p> : null}
+        <input id={`${formId}-slug`} name="slug" defaultValue={fields.slug} required maxLength={80} aria-invalid={Boolean(state.errors.slug)} aria-describedby={state.errors.slug ? `${formId}-slug-error` : `${formId}-slug-help`} className={fieldClass} />
+        <p id={`${formId}-slug-help`} className="mt-2 text-sm text-muted">Changing the slug keeps the old collection address working.</p>
+        {state.errors.slug ? <p id={`${formId}-slug-error`} className="mt-2 text-sm text-burgundy">{state.errors.slug}</p> : null}
       </div>
       <div>
         <label htmlFor={`${formId}-description`} className="text-sm font-medium text-forest">Description</label>
-        <textarea id={`${formId}-description`} name="description" defaultValue={values.description} required maxLength={500} rows={4} className={fieldClass} />
-        {state.errors.description ? <p className="mt-2 text-sm text-burgundy">{state.errors.description}</p> : null}
+        <textarea id={`${formId}-description`} name="description" defaultValue={fields.description} required maxLength={500} rows={4} aria-invalid={Boolean(state.errors.description)} aria-describedby={state.errors.description ? `${formId}-description-error` : undefined} className={fieldClass} />
+        {state.errors.description ? <p id={`${formId}-description-error`} className="mt-2 text-sm text-burgundy">{state.errors.description}</p> : null}
       </div>
       <div>
         <label htmlFor={`${formId}-order`} className="text-sm font-medium text-forest">Display order</label>
-        <input id={`${formId}-order`} name="displayOrder" inputMode="numeric" defaultValue={values.displayOrder} required className={fieldClass} />
+        <input id={`${formId}-order`} name="displayOrder" inputMode="numeric" defaultValue={fields.displayOrder} required aria-invalid={Boolean(state.errors.displayOrder)} aria-describedby={state.errors.displayOrder ? `${formId}-order-error` : undefined} className={fieldClass} />
         <p className="mt-2 text-sm text-muted">Lower numbers appear first.</p>
-        {state.errors.displayOrder ? <p className="mt-2 text-sm text-burgundy">{state.errors.displayOrder}</p> : null}
+        {state.errors.displayOrder ? <p id={`${formId}-order-error`} className="mt-2 text-sm text-burgundy">{state.errors.displayOrder}</p> : null}
       </div>
       <div>
         <label htmlFor={`${formId}-alt`} className="text-sm font-medium text-forest">Image alternative text</label>
-        <input id={`${formId}-alt`} name="imageAlt" defaultValue={values.imageAlt} maxLength={300} className={fieldClass} />
-        {state.errors.imageAlt ? <p className="mt-2 text-sm text-burgundy">{state.errors.imageAlt}</p> : null}
-        {state.errors.imageUrl ? <p className="mt-2 text-sm text-burgundy">{state.errors.imageUrl}</p> : null}
+        <input id={`${formId}-alt`} name="imageAlt" defaultValue={fields.imageAlt} maxLength={300} aria-invalid={Boolean(state.errors.imageAlt)} aria-describedby={state.errors.imageAlt ? `${formId}-alt-error` : undefined} className={fieldClass} />
+        {state.errors.imageAlt ? <p id={`${formId}-alt-error`} className="mt-2 text-sm text-burgundy">{state.errors.imageAlt}</p> : null}
+        {state.errors.imageUrl ? <p id={`${formId}-image-error`} className="mt-2 text-sm text-burgundy">{state.errors.imageUrl}</p> : null}
         <p className="mt-3 break-all text-sm text-muted">{imageUrl || "No image selected. The collection page can still open without one."}</p>
         <label htmlFor={`${formId}-existing`} className="mt-3 block text-sm font-medium text-forest">Photograph</label>
         <select
@@ -134,14 +144,14 @@ export function CategoryForm({
             Remove image
           </button>
         ) : null}
-        {uploadMessage ? <p className="mt-2 text-sm text-burgundy">{uploadMessage}</p> : null}
+        {uploadMessage ? <p ref={uploadRef} tabIndex={-1} role="alert" className="mt-2 text-sm text-burgundy outline-none">{uploadMessage}</p> : null}
         {uploading ? <p className="mt-2 text-sm text-muted">Uploading…</p> : null}
       </div>
       <label className="inline-flex min-h-12 items-center gap-3 text-sm text-forest">
-        <input type="checkbox" name="active" defaultChecked={values.active} className="size-4 accent-burgundy" />
+        <input type="checkbox" name="active" defaultChecked={fields.active} className="size-4 accent-burgundy" />
         Active in navigation and collection pages
       </label>
-      <SubmitButton label={categoryId ? "Save category" : "Create category"} />
+      <SubmitButton label={categoryId ? "Save category" : "Create category"} busy={uploading} />
     </form>
   );
 }

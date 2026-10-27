@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
+import { redirect, unstable_rethrow } from "next/navigation";
 import {
   createManagedCategory,
   deleteManagedCategory,
@@ -9,10 +9,16 @@ import {
   updateManagedCategory,
 } from "@/lib/categories/admin";
 import { CategoryInUseError, DuplicateCategoryError, validateCategoryDraft } from "@/lib/categories/records";
-import { CatalogueAccessError } from "@/lib/catalogue-error";
+import { CatalogueAccessError, redactSecrets } from "@/lib/catalogue-error";
+import { CATEGORY_SAVE_FAILED, failedCategory, type EnteredCategory } from "@/lib/catalogue/form-feedback";
 import { AdminAccessError } from "@/lib/products/admin-repository";
 
-export type CategoryFormState = { message: string; errors: Record<string, string> };
+export type CategoryFormState = {
+  message: string;
+  errors: Record<string, string>;
+  entered?: EnteredCategory;
+  attempt: number;
+};
 
 function revalidateCategories(slug?: string) {
   revalidatePath("/", "layout");
@@ -39,31 +45,34 @@ export async function saveCategory(
     expectedUpdatedAt: formData.get("expectedUpdatedAt"),
   });
   if (!parsed.ok) {
-    return { message: parsed.message, errors: parsed.errors };
+    return failedCategory(_previous, formData, parsed.message, parsed.errors);
   }
   try {
     if (id) {
       const updated = await updateManagedCategory(id, parsed.value);
       if (!updated) {
-        return { message: "That category is no longer available.", errors: {} };
+        return failedCategory(_previous, formData, "That category is no longer available.", {});
       }
       revalidateCategories(parsed.value.slug);
-      redirect(`/admin/categories/${id}/edit?saved=1`);
+      redirect(`/admin/categories/${id}/edit?saved=updated`);
     }
     const createdId = await createManagedCategory(parsed.value);
     revalidateCategories(parsed.value.slug);
-    redirect(`/admin/categories/${createdId}/edit?saved=1`);
+    redirect(`/admin/categories/${createdId}/edit?saved=created`);
   } catch (error) {
+    unstable_rethrow(error);
     if (error instanceof DuplicateCategoryError) {
-      return { message: error.message, errors: { slug: error.message } };
+      return failedCategory(_previous, formData, error.message, { slug: error.message });
     }
     if (error instanceof AdminAccessError) {
       redirect("/admin/login");
     }
     if (error instanceof CatalogueAccessError) {
-      return { message: error.message, errors: {} };
+      return failedCategory(_previous, formData, error.message, {});
     }
-    throw error;
+    const detail = error instanceof Error ? error.message : "Unknown error";
+    console.error(`Category save failed: ${redactSecrets(detail)}`);
+    return failedCategory(_previous, formData, CATEGORY_SAVE_FAILED, {});
   }
 }
 

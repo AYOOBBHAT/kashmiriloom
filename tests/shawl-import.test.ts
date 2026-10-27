@@ -1,0 +1,108 @@
+import assert from "node:assert/strict";
+import { mkdtemp, mkdir, writeFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import { after, describe, test } from "node:test";
+import { discoverShawls, importSku, importSlug, planShawlImport } from "@/lib/catalogue/shawl-import";
+import { isApprovedImageUrl } from "@/lib/products/images";
+import { parseInrToPaise } from "@/lib/products/validate";
+import { productShownPublicly } from "@/lib/catalogue/visibility";
+
+const root = await mkdtemp(path.join(tmpdir(), "shawl-import-"));
+
+after(async () => {
+  await rm(root, { recursive: true, force: true });
+});
+
+async function touch(file: string) {
+  await mkdir(path.dirname(file), { recursive: true });
+  await writeFile(file, "png");
+}
+
+describe("shawl import planning", () => {
+  test("discovers one product per shawl folder and keeps image order", async () => {
+    await touch(path.join(root, "Kani shawls", "1.18", "b.png"));
+    await touch(path.join(root, "Kani shawls", "1.18", "a.png"));
+    await touch(path.join(root, "Kani shawls", "1.20", "only.webp"));
+    await touch(path.join(root, "Kani shawls", "notes.txt"));
+    await mkdir(path.join(root, "Zari shawls", "1.1"), { recursive: true });
+    await touch(path.join(root, "Machine embroidery", "1.12", "skip.pdf"));
+    for (let index = 0; index < 7; index += 1) {
+      await touch(path.join(root, "Machine embroidery", "1.12", `${index}.png`));
+    }
+
+    const shawls = await discoverShawls(root);
+    const kani = shawls.find((shawl) => shawl.folderName === "1.18");
+    assert.ok(kani);
+    assert.deepEqual(kani.images.map((image) => image.name), ["a.png", "b.png"]);
+    assert.equal(kani.images[0]?.url, "/Kani shawls/1.18/a.png");
+    assert.equal(isApprovedImageUrl(kani.images[0]?.url ?? ""), true);
+    const empty = shawls.find((shawl) => shawl.sourceDirectory === "Zari shawls");
+    assert.equal(empty?.images.length, 0);
+    const machine = shawls.find((shawl) => shawl.folderName === "1.12");
+    assert.equal(machine?.images.length, 7);
+    assert.deepEqual(machine?.skippedFiles, ["skip.pdf"]);
+    const planned = planShawlImport({
+      shawls: machine ? [machine] : [],
+      categories: [{ slug: "machine-embroidery", name: "Machine embroidery" }],
+      products: [],
+      update: false,
+    });
+    assert.equal(planned[0]?.draft?.images.length, 6);
+    assert.equal(planned[0]?.draft?.images[0]?.primary, true);
+    assert.equal(planned[0]?.draft?.omittedImages.length, 1);
+    assert.equal(planned[0]?.draft?.status, "draft");
+  });
+
+  test("prices a draft at 500000 paise and does not repeat or overwrite a different product", () => {
+    assert.equal(parseInrToPaise("5000"), 500_000);
+    assert.equal(importSlug("kani", "1.18"), "kani-1-18");
+    assert.equal(importSku("kani", "1.18"), "KL-KANI-1-18");
+    const shawl = {
+      sourceDirectory: "Kani shawls",
+      folderName: "1.18",
+      relativeFolder: "1.18",
+      images: [
+        { name: "b.png", relativePath: "b.png", url: "/Kani shawls/1.18/b.png" },
+        { name: "a.png", relativePath: "a.png", url: "/Kani shawls/1.18/a.png" },
+      ],
+      skippedFiles: [],
+      notes: [],
+    };
+    const categories = [{ slug: "kani", name: "Kani shawls" }];
+    const first = planShawlImport({ shawls: [shawl], categories, products: [], update: false });
+    assert.equal(first[0]?.action, "create");
+    assert.equal(first[0]?.draft?.pricePaise, 500_000);
+    assert.equal(first[0]?.draft?.stockQuantity, 1);
+    assert.equal(first[0]?.draft?.status, "draft");
+    assert.equal(first[0]?.draft?.active, false);
+    assert.equal(first[0]?.draft?.featured, false);
+    assert.equal(first[0]?.draft?.images[0]?.primary, true);
+    assert.equal(first[0]?.draft?.images[0]?.url, "/Kani shawls/1.18/a.png");
+    assert.equal(productShownPublicly("draft"), false);
+    assert.match(first[0]?.draft?.description ?? "", /Kani shawls/);
+    assert.doesNotMatch(first[0]?.draft?.description ?? "", /pashmina|cashmere|handwoven|handmade|authentic/i);
+
+    const again = planShawlImport({
+      shawls: [shawl],
+      categories,
+      products: [{ slug: "kani-1-18", sku: "KL-KANI-1-18" }],
+      update: false,
+    });
+    assert.equal(again[0]?.action, "already-imported");
+    const conflict = planShawlImport({
+      shawls: [shawl],
+      categories,
+      products: [{ slug: "kani-1-18", sku: "KL-MANUAL" }],
+      update: false,
+    });
+    assert.equal(conflict[0]?.action, "conflict");
+    const missing = planShawlImport({
+      shawls: [{ ...shawl, sourceDirectory: "Sozni shawls", images: shawl.images }],
+      categories,
+      products: [],
+      update: false,
+    });
+    assert.equal(missing[0]?.action, "missing-category");
+  });
+});

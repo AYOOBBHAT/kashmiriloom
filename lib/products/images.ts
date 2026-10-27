@@ -1,4 +1,5 @@
 import { collections } from "@/data/catalog";
+import { SHAWL_IMAGE_EXTENSIONS, SHAWL_SOURCES } from "@/lib/catalogue/shawl-sources";
 
 export const LOCAL_IMAGES = new Set<string>([
   "/images/shawl-nishat.jpg",
@@ -41,9 +42,9 @@ export function cloudinaryCloudName(): string | null {
   return cloud;
 }
 
-/** Local catalogue files, or an image hosted on this house's Cloudinary cloud. */
+/** Local catalogue files, an imported shawl photograph under public, or this house's Cloudinary cloud. */
 export function isApprovedImageUrl(url: string): boolean {
-  if (LOCAL_IMAGES.has(url)) {
+  if (LOCAL_IMAGES.has(url) || isImportedShawlImage(url)) {
     return true;
   }
   const cloud = cloudinaryCloudName();
@@ -52,4 +53,27 @@ export function isApprovedImageUrl(url: string): boolean {
   }
   const prefix = `https://res.cloudinary.com/${cloud}/image/upload/`;
   return url.startsWith(prefix) && url.length <= 500 && !/[\s\\]/.test(url);
+}
+
+export function isImportedShawlImage(url: string): boolean {
+  if (!url.startsWith("/") || url.length > 500 || url.includes("\\") || url.includes("..")) {
+    return false;
+  }
+  if (/[\u0000-\u001f]/.test(url)) {
+    return false;
+  }
+  let decoded = url;
+  try {
+    decoded = decodeURIComponent(url);
+  } catch {
+    return false;
+  }
+  if (decoded.includes("..") || decoded.includes("\\") || /[\u0000-\u001f]/.test(decoded)) {
+    return false;
+  }
+  const extension = decoded.slice(decoded.lastIndexOf(".")).toLowerCase();
+  if (!SHAWL_IMAGE_EXTENSIONS.some((item) => item === extension)) {
+    return false;
+  }
+  return SHAWL_SOURCES.some((source) => decoded.startsWith(`/${source.directory}/`));
 }

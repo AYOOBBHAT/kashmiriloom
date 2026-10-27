@@ -1,8 +1,9 @@
 "use client";
 
-import { useActionState, useId, useState } from "react";
+import { useActionState, useEffect, useId, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { uploadCatalogueImageFile } from "@/components/admin/direct-upload";
+import { FormFeedback } from "@/components/admin/form-feedback";
 import type { ProductFormState } from "@/app/admin/actions";
 import type { ProductStatus } from "@/lib/products/status";
 
@@ -37,20 +38,22 @@ export type ProductFormValues = {
   linkSourceId: string;
 };
 
-const emptyState: ProductFormState = { message: "", errors: {} };
+const emptyState: ProductFormState = { message: "", errors: {}, attempt: 0 };
 
 const fieldClass =
   "mt-2 w-full border border-gold/80 bg-ivory px-3 py-3 text-base text-ink outline-none focus-visible:border-forest";
 
-function SubmitButton({ label }: { label: string }) {
+function SubmitButton({ label, busy }: { label: string; busy: boolean }) {
   const { pending } = useFormStatus();
+  const waiting = pending || busy;
   return (
     <button
       type="submit"
-      disabled={pending}
+      disabled={waiting}
+      aria-busy={pending}
       className="inline-flex min-h-12 items-center justify-center bg-burgundy px-6 text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-ivory hover:bg-forest disabled:opacity-60"
     >
-      {pending ? "Saving…" : label}
+      {pending ? "Saving..." : label}
     </button>
   );
 }
@@ -88,7 +91,7 @@ function TextField({
       <label htmlFor={id} className="text-sm font-medium text-forest">
         {label}
       </label>
-      <input id={id} name={name} defaultValue={defaultValue} maxLength={maxLength} className={fieldClass} />
+      <input id={id} name={name} defaultValue={defaultValue} maxLength={maxLength} aria-invalid={Boolean(error)} aria-describedby={error ? `${id}-error` : undefined} className={fieldClass} />
       {hint ? <p className="mt-2 text-sm text-muted">{hint}</p> : null}
       <FieldError id={`${id}-error`} message={error} />
     </div>
@@ -113,7 +116,10 @@ export function ProductForm({
   notice: string;
 }) {
   const formId = useId();
+  const uploadRef = useRef<HTMLParagraphElement>(null);
   const [state, formAction] = useActionState(action, emptyState);
+  const [dismissNotice, setDismissNotice] = useState(false);
+  const fields = state.entered ?? values;
   const [category, setCategory] = useState(values.category);
   const [images, setImages] = useState<ImageRow[]>(() => {
     const rows =
@@ -124,6 +130,12 @@ export function ProductForm({
   });
   const [uploadMessage, setUploadMessage] = useState("");
   const [uploading, setUploading] = useState(false);
+
+  useEffect(() => {
+    if (uploadMessage) {
+      uploadRef.current?.focus();
+    }
+  }, [uploadMessage]);
   const choices = categories.some((item) => item.slug === category)
     ? categories
     : [{ slug: category, name: category, active: false }, ...categories];
@@ -177,33 +189,24 @@ export function ProductForm({
   }
 
   return (
-    <form action={formAction} className="mt-8 space-y-6">
-      <input type="hidden" name="expectedUpdatedAt" value={values.expectedUpdatedAt} />
-      <input type="hidden" name="linkSourceId" value={values.linkSourceId} />
-      {notice && !state.message ? (
-        <p className="border border-gold bg-ivory px-4 py-3 text-sm text-forest" role="status">
-          {notice}
-        </p>
-      ) : null}
-      {state.message ? (
-        <p className="border border-burgundy/40 bg-ivory px-4 py-3 text-sm text-burgundy" role="alert">
-          {state.message}
-        </p>
-      ) : null}
+    <form key={state.attempt} action={formAction} onSubmit={() => { setDismissNotice(true); setUploadMessage(""); }} className="mt-8 space-y-6">
+      <input type="hidden" name="expectedUpdatedAt" value={fields.expectedUpdatedAt} />
+      <input type="hidden" name="linkSourceId" value={fields.linkSourceId} />
+      <FormFeedback notice={dismissNotice ? "" : notice} error={state.message} />
 
       <div className="grid gap-6 sm:grid-cols-2">
         <div>
           <label htmlFor={`${formId}-name`} className="text-sm font-medium text-forest">
             Name
           </label>
-          <input id={`${formId}-name`} name="name" defaultValue={values.name} required maxLength={120} className={fieldClass} aria-invalid={Boolean(state.errors.name)} />
+          <input id={`${formId}-name`} name="name" defaultValue={fields.name} required maxLength={120} className={fieldClass} aria-invalid={Boolean(state.errors.name)} aria-describedby={state.errors.name ? `${formId}-name-error` : undefined} />
           <FieldError id={`${formId}-name-error`} message={state.errors.name} />
         </div>
         <div>
           <label htmlFor={`${formId}-slug`} className="text-sm font-medium text-forest">
             Slug
           </label>
-          <input id={`${formId}-slug`} name="slug" defaultValue={values.slug} required maxLength={80} className={fieldClass} aria-describedby={`${formId}-slug-help`} />
+          <input id={`${formId}-slug`} name="slug" defaultValue={fields.slug} required maxLength={80} className={fieldClass} aria-invalid={Boolean(state.errors.slug)} aria-describedby={state.errors.slug ? `${formId}-slug-error` : `${formId}-slug-help`} />
           <p id={`${formId}-slug-help`} className="mt-2 text-sm text-muted">
             The public address uses this slug. The previous address keeps working for an active shawl.
           </p>
@@ -215,7 +218,7 @@ export function ProductForm({
         <label htmlFor={`${formId}-short`} className="text-sm font-medium text-forest">
           Short description
         </label>
-        <textarea id={`${formId}-short`} name="shortDescription" defaultValue={values.shortDescription} maxLength={280} rows={2} className={fieldClass} />
+        <textarea id={`${formId}-short`} name="shortDescription" defaultValue={fields.shortDescription} maxLength={280} rows={2} aria-invalid={Boolean(state.errors.shortDescription)} aria-describedby={state.errors.shortDescription ? `${formId}-short-error` : undefined} className={fieldClass} />
         <p className="mt-2 text-sm text-muted">Shown on product cards. Leave blank to use the first sentence of the description.</p>
         <FieldError id={`${formId}-short-error`} message={state.errors.shortDescription} />
       </div>
@@ -223,7 +226,7 @@ export function ProductForm({
         <label htmlFor={`${formId}-description`} className="text-sm font-medium text-forest">
           Description
         </label>
-        <textarea id={`${formId}-description`} name="description" defaultValue={values.description} required maxLength={2000} rows={6} className={fieldClass} />
+        <textarea id={`${formId}-description`} name="description" defaultValue={fields.description} required maxLength={2000} rows={6} aria-invalid={Boolean(state.errors.description)} aria-describedby={state.errors.description ? `${formId}-description-error` : undefined} className={fieldClass} />
         <FieldError id={`${formId}-description-error`} message={state.errors.description} />
       </div>
 
@@ -252,7 +255,7 @@ export function ProductForm({
           <label htmlFor={`${formId}-sku`} className="text-sm font-medium text-forest">
             SKU
           </label>
-          <input id={`${formId}-sku`} name="sku" defaultValue={values.sku} required maxLength={40} className={fieldClass} />
+          <input id={`${formId}-sku`} name="sku" defaultValue={fields.sku} required maxLength={40} aria-invalid={Boolean(state.errors.sku)} aria-describedby={state.errors.sku ? `${formId}-sku-error` : undefined} className={fieldClass} />
           <p className="mt-2 text-sm text-muted">Each stocked shawl or option needs its own SKU.</p>
           <FieldError id={`${formId}-sku-error`} message={state.errors.sku} />
         </div>
@@ -260,14 +263,14 @@ export function ProductForm({
           <label htmlFor={`${formId}-price`} className="text-sm font-medium text-forest">
             Price (INR)
           </label>
-          <input id={`${formId}-price`} name="priceRupees" inputMode="decimal" defaultValue={values.priceRupees} required className={fieldClass} />
+          <input id={`${formId}-price`} name="priceRupees" inputMode="decimal" defaultValue={fields.priceRupees} required aria-invalid={Boolean(state.errors.priceRupees)} aria-describedby={state.errors.priceRupees ? `${formId}-price-error` : undefined} className={fieldClass} />
           <FieldError id={`${formId}-price-error`} message={state.errors.priceRupees} />
         </div>
         <div>
           <label htmlFor={`${formId}-compare`} className="text-sm font-medium text-forest">
             Compare-at price (INR)
           </label>
-          <input id={`${formId}-compare`} name="compareAtRupees" inputMode="decimal" defaultValue={values.compareAtRupees} className={fieldClass} />
+          <input id={`${formId}-compare`} name="compareAtRupees" inputMode="decimal" defaultValue={fields.compareAtRupees} aria-invalid={Boolean(state.errors.compareAtRupees)} aria-describedby={state.errors.compareAtRupees ? `${formId}-compare-error` : undefined} className={fieldClass} />
           <p className="mt-2 text-sm text-muted">Leave blank when there is no higher previous price.</p>
           <FieldError id={`${formId}-compare-error`} message={state.errors.compareAtRupees} />
         </div>
@@ -275,7 +278,7 @@ export function ProductForm({
           <label htmlFor={`${formId}-stock`} className="text-sm font-medium text-forest">
             Catalogue quantity
           </label>
-          <input id={`${formId}-stock`} name="stockQuantity" inputMode="numeric" defaultValue={values.stockQuantity} required className={fieldClass} />
+          <input id={`${formId}-stock`} name="stockQuantity" inputMode="numeric" defaultValue={fields.stockQuantity} required aria-invalid={Boolean(state.errors.stockQuantity)} aria-describedby={state.errors.stockQuantity ? `${formId}-stock-error` : undefined} className={fieldClass} />
           <p className="mt-2 text-sm text-muted">
             This quantity belongs to this SKU. A quantity of {3} or below is marked low in the admin list.
           </p>
@@ -285,7 +288,7 @@ export function ProductForm({
           <label htmlFor={`${formId}-status`} className="text-sm font-medium text-forest">
             Status
           </label>
-          <select id={`${formId}-status`} name="status" defaultValue={values.status} className={fieldClass}>
+          <select id={`${formId}-status`} name="status" defaultValue={fields.status} aria-invalid={Boolean(state.errors.status)} aria-describedby={state.errors.status ? `${formId}-status-error` : undefined} className={fieldClass}>
             <option value="draft">Draft</option>
             <option value="active">Active</option>
             <option value="archived">Archived</option>
@@ -307,7 +310,7 @@ export function ProductForm({
                   type="checkbox"
                   name="collectionSlug"
                   value={item.slug}
-                  defaultChecked={values.collectionSlugs.includes(item.slug)}
+                  defaultChecked={fields.collectionSlugs.includes(item.slug)}
                   className="size-4 accent-burgundy"
                 />
                 {item.name}
@@ -321,25 +324,25 @@ export function ProductForm({
       <fieldset className="flex flex-wrap gap-6">
         <legend className="sr-only">Featured</legend>
         <label className="inline-flex min-h-12 items-center gap-3 text-sm text-forest">
-          <input type="checkbox" name="featured" defaultChecked={values.featured} className="size-4 accent-burgundy" />
+          <input type="checkbox" name="featured" defaultChecked={fields.featured} className="size-4 accent-burgundy" />
           Featured while active
         </label>
       </fieldset>
 
       <fieldset className="grid gap-6 sm:grid-cols-2">
         <legend className="text-sm font-medium text-forest sm:col-span-2">Options for this stocked shawl</legend>
-        <TextField id={`${formId}-variant-group`} name="variantGroup" label="Variant group" defaultValue={values.variantGroup} error={state.errors.variantGroup} maxLength={80} hint="Leave blank for a shawl with one stock record. Use the same group for other colours or sizes, each with its own SKU." />
-        <TextField id={`${formId}-variant-label`} name="variantLabel" label="Option label" defaultValue={values.variantLabel} error={state.errors.variantLabel} maxLength={80} hint="For example, ivory or large." />
-        <TextField id={`${formId}-color`} name="color" label="Colour" defaultValue={values.color} error={state.errors.color} maxLength={80} />
-        <TextField id={`${formId}-size`} name="size" label="Size" defaultValue={values.size} error={state.errors.size} maxLength={80} />
-        <TextField id={`${formId}-weave`} name="weave" label="Weave" defaultValue={values.weave} error={state.errors.weave} maxLength={80} />
-        <TextField id={`${formId}-embroidery`} name="embroidery" label="Embroidery" defaultValue={values.embroidery} error={state.errors.embroidery} maxLength={80} />
+        <TextField id={`${formId}-variant-group`} name="variantGroup" label="Variant group" defaultValue={fields.variantGroup} error={state.errors.variantGroup} maxLength={80} hint="Leave blank for a shawl with one stock record. Use the same group for other colours or sizes, each with its own SKU." />
+        <TextField id={`${formId}-variant-label`} name="variantLabel" label="Option label" defaultValue={fields.variantLabel} error={state.errors.variantLabel} maxLength={80} hint="For example, ivory or large." />
+        <TextField id={`${formId}-color`} name="color" label="Colour" defaultValue={fields.color} error={state.errors.color} maxLength={80} />
+        <TextField id={`${formId}-size`} name="size" label="Size" defaultValue={fields.size} error={state.errors.size} maxLength={80} />
+        <TextField id={`${formId}-weave`} name="weave" label="Weave" defaultValue={fields.weave} error={state.errors.weave} maxLength={80} />
+        <TextField id={`${formId}-embroidery`} name="embroidery" label="Embroidery" defaultValue={fields.embroidery} error={state.errors.embroidery} maxLength={80} />
       </fieldset>
 
       <fieldset className="space-y-4">
         <legend className="text-sm font-medium text-forest">Images</legend>
         <p className="text-sm text-muted">Order the photographs, and choose one primary image for cards.</p>
-        {state.errors.images ? <p className="text-sm text-burgundy">{state.errors.images}</p> : null}
+        {state.errors.images ? <p id={`${formId}-images-error`} role="alert" className="text-sm text-burgundy">{state.errors.images}</p> : null}
         {images.map((image, index) => (
           <div key={image.key} className="border border-gold/70 p-4">
             <p className="text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-burgundy">Image {index + 1}</p>
@@ -434,23 +437,23 @@ export function ProductForm({
             Cloudinary is not configured, so new files cannot be uploaded. Choose one of the existing photographs, or add the Cloudinary server variables and restart.
           </p>
         )}
-        {uploadMessage ? <p className="text-sm text-burgundy">{uploadMessage}</p> : null}
+        {uploadMessage ? <p ref={uploadRef} tabIndex={-1} role="alert" className="text-sm text-burgundy outline-none">{uploadMessage}</p> : null}
         {uploading ? <p className="text-sm text-muted">Uploading…</p> : null}
       </fieldset>
 
       <div className="grid gap-6">
-        <TextField id={`${formId}-material`} name="material" label="Material" defaultValue={values.material} error={state.errors.material} maxLength={200} hint="Leave blank when the material is not recorded." />
-        <TextField id={`${formId}-dimensions`} name="dimensions" label="Dimensions" defaultValue={values.dimensions} error={state.errors.dimensions} maxLength={200} />
+        <TextField id={`${formId}-material`} name="material" label="Material" defaultValue={fields.material} error={state.errors.material} maxLength={200} hint="Leave blank when the material is not recorded." />
+        <TextField id={`${formId}-dimensions`} name="dimensions" label="Dimensions" defaultValue={fields.dimensions} error={state.errors.dimensions} maxLength={200} />
         <div>
           <label htmlFor={`${formId}-care`} className="text-sm font-medium text-forest">
             Care
           </label>
-          <textarea id={`${formId}-care`} name="care" defaultValue={values.care} maxLength={500} rows={3} className={fieldClass} />
+          <textarea id={`${formId}-care`} name="care" defaultValue={fields.care} maxLength={500} rows={3} aria-invalid={Boolean(state.errors.care)} aria-describedby={state.errors.care ? `${formId}-care-error` : undefined} className={fieldClass} />
           <FieldError id={`${formId}-care-error`} message={state.errors.care} />
         </div>
       </div>
 
-      <SubmitButton label={productId ? "Save shawl" : "Create shawl"} />
+      <SubmitButton label={productId ? "Save shawl" : "Create shawl"} busy={uploading} />
     </form>
   );
 }

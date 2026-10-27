@@ -15,7 +15,7 @@
     "test:limits": "node --conditions=react-server --experimental-strip-types --import ./scripts/register.mjs --test tests/rate-limits.test.ts",
     "test:collections": "node --conditions=react-server --experimental-strip-types --import ./scripts/register.mjs --test tests/collection-paths.test.ts",
     "test:seo": "node --conditions=react-server --experimental-strip-types --import ./scripts/register.mjs --test tests/seo.test.ts tests/structured-data.test.ts",
-    "seed": "node --conditions=react-server --experimental-strip-types --import ./scripts/register.mjs scripts/seed-products.ts",
+    "import:shawls": "node --conditions=react-server --experimental-strip-types --import ./scripts/register.mjs scripts/import-shawls.ts",
     "admin:bootstrap": "node --conditions=react-server --experimental-strip-types --import ./scripts/register.mjs scripts/bootstrap-admin.ts"
   },
   "dependencies": {
