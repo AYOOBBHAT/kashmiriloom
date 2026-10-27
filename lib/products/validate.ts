@@ -1,5 +1,6 @@
 import { isSlug } from "@/lib/catalogue/slug";
 import { isApprovedImageUrl } from "@/lib/products/images";
+import { MAX_PRODUCT_IMAGES } from "@/lib/products/limits";
 import { withPrimaryImage } from "@/lib/products/gallery";
 import { isProductStatus, type ProductStatus } from "@/lib/products/status";
 import { isPaise, MAX_PAISE } from "@/lib/money";
@@ -182,8 +183,8 @@ export function validateProductDraft(input: {
   }
 
   const images: { url: string; alt: string; primary: boolean }[] = [];
-  if (input.images.length < 1 || input.images.length > 6) {
-    errors.images = "Add between 1 and 6 images.";
+  if (input.images.length < 1 || input.images.length > MAX_PRODUCT_IMAGES) {
+    errors.images = `Add between 1 and ${MAX_PRODUCT_IMAGES} images.`;
   }
   input.images.forEach((image, index) => {
     const url = clean(image.url);

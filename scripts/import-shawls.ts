@@ -5,10 +5,13 @@
  * pnpm import:shawls
  * pnpm import:shawls -- --apply
  * pnpm import:shawls -- --apply --update
+ *
+ * --update replaces the image array only when the slug and SKU both match the
+ * import identity. It does not change name, description, price, stock, or publication status.
  */
 import mongoose from "mongoose";
 import path from "node:path";
-import { discoverShawls, planShawlImport, type ImportPlanRow } from "@/lib/catalogue/shawl-import";
+import { discoverShawls, importerImagePatch, planShawlImport, type ImportPlanRow } from "@/lib/catalogue/shawl-import";
 import { SHAWL_SOURCES } from "@/lib/catalogue/shawl-sources";
 import { seedCategories } from "@/lib/categories/defaults";
 import { redactSecrets } from "@/lib/catalogue-error";
@@ -34,7 +37,11 @@ async function main() {
   console.log(`Using MONGODB_URI from ${source}. The value is not printed.`);
   console.log(apply ? "Apply mode. New draft products may be written. Nothing is deleted." : "Dry run. No products will be written.");
   if (update) {
-    console.log(apply ? "Update mode will refresh shawls that already use the import slug and SKU." : "Update mode is only a preview until --apply is set.");
+    console.log(
+      apply
+        ? "Update mode will replace image arrays for products that already use the import slug and SKU. Other fields stay as saved."
+        : "Update mode is only a preview until --apply is set.",
+    );
   }
 
   mongoose.set("autoIndex", false);
@@ -56,11 +63,22 @@ async function main() {
       console.log("No category documents are stored. Only the original Kani, embroidered, and everyday names can match until categories are created in the admin.");
     }
     const products = await Product.find({})
-      .select("slug sku")
+      .select("slug sku status pricePaise images.url")
       .limit(5000)
-      .lean<Array<{ slug: string; sku: string }>>();
+      .lean<Array<{ slug: string; sku: string; status?: string; pricePaise?: number; images?: Array<{ url: string }> }>>();
     const shawls = await discoverShawls(path.join(process.cwd(), "public"));
-    const rows = planShawlImport({ shawls, categories, products, update });
+    const rows = planShawlImport({
+      shawls,
+      categories,
+      products: products.map((product) => ({
+        slug: product.slug,
+        sku: product.sku,
+        status: product.status,
+        pricePaise: product.pricePaise,
+        imageUrls: product.images?.map((image) => image.url) ?? [],
+      })),
+      update,
+    });
 
     for (const folder of SHAWL_SOURCES) {
       const found = shawls.filter((shawl) => shawl.sourceDirectory === folder.directory && shawl.images.length > 0);
@@ -74,7 +92,7 @@ async function main() {
     const count = (action: ImportPlanRow["action"]) => rows.filter((row) => row.action === action).length;
     console.log("");
     console.log(
-      `Summary: ${count("create")} to create, ${count("already-imported")} already imported, ${count("update")} to update, ${count("conflict")} conflicts, ${count("missing-category")} missing categories, ${count("skip")} skipped.`,
+      `Summary: ${count("create")} to create, ${count("already-imported")} already imported, ${count("images-incomplete")} with incomplete images, ${count("update")} image updates, ${count("conflict")} conflicts, ${count("missing-category")} missing categories, ${count("skip")} skipped.`,
     );
 
     if (!apply) {
@@ -137,19 +155,13 @@ async function main() {
       }
       const result = await Product.updateOne(
         { slug: parsed.value.slug, sku: parsed.value.sku },
-        {
-          $set: {
-            name: parsed.value.name,
-            description: parsed.value.description,
-            category: parsed.value.category,
-            pricePaise: parsed.value.pricePaise,
-            stockQuantity: parsed.value.stockQuantity,
-            images: parsed.value.images,
-            currency: "INR",
-          },
-        },
+        { $set: importerImagePatch(row.draft) },
       );
-      console.log(result.matchedCount === 1 ? `Updated ${parsed.value.slug}. Publication status was left unchanged.` : `Skipped ${parsed.value.slug}: the imported record was not found.`);
+      console.log(
+        result.matchedCount === 1
+          ? `Updated images on ${parsed.value.slug}. Publication status and other fields were left unchanged.`
+          : `Skipped ${parsed.value.slug}: the imported record was not found.`,
+      );
     }
   } catch (error) {
     const detail = error instanceof Error ? error.message : "Unknown error";

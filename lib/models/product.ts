@@ -2,6 +2,7 @@ import "server-only";
 
 import mongoose, { type Model, Schema } from "mongoose";
 import { MAX_PAISE } from "@/lib/money";
+import { MAX_PRODUCT_IMAGES } from "@/lib/products/limits";
 import type { ProductStatus } from "@/lib/products/status";
 
 export interface ProductImageRecord {
@@ -102,9 +103,9 @@ const productSchema = new Schema<ProductAttrs>(
       required: true,
       validate: {
         validator(value: ProductImageRecord[]) {
-          return Array.isArray(value) && value.length > 0 && value.length <= 6;
+          return Array.isArray(value) && value.length > 0 && value.length <= MAX_PRODUCT_IMAGES;
         },
-        message: "A product needs between 1 and 6 images.",
+        message: `A product needs between 1 and ${MAX_PRODUCT_IMAGES} images.`,
       },
     },
     sku: {

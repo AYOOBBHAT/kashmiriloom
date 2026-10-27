@@ -1,17 +1,24 @@
 import { readdir } from "node:fs/promises";
 import path from "node:path";
 import { SHAWL_IMAGE_EXTENSIONS, SHAWL_SOURCES } from "@/lib/catalogue/shawl-sources";
+import { MAX_PRODUCT_IMAGES } from "@/lib/products/limits";
 import { parseInrToPaise } from "@/lib/products/validate";
 
 export const IMPORT_PRICE_RUPEES = "5000";
 export const IMPORT_STOCK_QUANTITY = 1;
-export const MAX_PRODUCT_IMAGES = 6;
+export { MAX_PRODUCT_IMAGES };
 
 const pricePaise = parseInrToPaise(IMPORT_PRICE_RUPEES);
 
 export type CatalogueCategory = { slug: string; name: string };
 
-export type ExistingProduct = { slug: string; sku: string };
+export type ExistingProduct = {
+  slug: string;
+  sku: string;
+  imageUrls?: string[];
+  status?: string;
+  pricePaise?: number;
+};
 
 export type DiscoveredImage = { name: string; relativePath: string; url: string };
 
@@ -41,7 +48,7 @@ export type ImportDraft = {
   omittedImages: string[];
 };
 
-export type ImportAction = "create" | "already-imported" | "update" | "conflict" | "missing-category" | "skip";
+export type ImportAction = "create" | "already-imported" | "images-incomplete" | "update" | "conflict" | "missing-category" | "skip";
 
 export type ImportPlanRow = {
   source: string;
@@ -49,6 +56,21 @@ export type ImportPlanRow = {
   reason: string;
   draft?: ImportDraft;
 };
+
+function sameImageUrls(existing: string[] | undefined, draft: ImportDraft): boolean {
+  if (!existing) {
+    return true;
+  }
+  const next = draft.images.map((image) => image.url);
+  return existing.length === next.length && existing.every((url, index) => url === next[index]);
+}
+
+/** Fields an image repair is allowed to write. Publication and catalogue text stay as saved. */
+export function importerImagePatch(draft: ImportDraft): { images: ImportDraft["images"] } {
+  return {
+    images: draft.images.map((image) => ({ url: image.url, alt: image.alt, primary: image.primary })),
+  };
+}
 
 function extensionOf(name: string): string {
   return path.extname(name).toLowerCase();
@@ -249,15 +271,30 @@ export function planShawlImport(input: {
     }
     seenSlugs.add(slug);
     seenSkus.add(sku);
+    const extra =
+      omittedImages.length > 0
+        ? ` ${omittedImages.length} ${omittedImages.length === 1 ? "image exceeds" : "images exceed"} the ${MAX_PRODUCT_IMAGES}-image limit and would be left out.`
+        : "";
     const bySku = input.products.find((product) => product.sku === sku);
     const bySlug = input.products.find((product) => product.slug === slug);
     if (bySku && bySlug && bySku.sku === bySlug.sku) {
+      const owned = bySku;
+      if (!sameImageUrls(owned.imageUrls, draft)) {
+        const kept = owned.status ? ` It is currently ${owned.status}.` : "";
+        rows.push({
+          source,
+          action: input.update ? "update" : "images-incomplete",
+          reason: input.update
+            ? `Would replace the image array only.${kept} Name, description, price, stock, and publication status would stay as saved.${extra}`
+            : `The image array is missing photographs from this folder.${kept} Pass --update to replace the images only. Other saved fields would stay unchanged.${extra}`,
+          draft,
+        });
+        continue;
+      }
       rows.push({
         source,
-        action: input.update ? "update" : "already-imported",
-        reason: input.update
-          ? "This imported shawl already exists. Update mode would refresh its name, price, stock, and images, and leave its publication status unchanged."
-          : "Already imported. The existing product was left unchanged.",
+        action: "already-imported",
+        reason: "Already imported. The existing product was left unchanged.",
         draft,
       });
       continue;
@@ -271,10 +308,6 @@ export function planShawlImport(input: {
       });
       continue;
     }
-    const extra =
-      omittedImages.length > 0
-        ? ` ${omittedImages.length} ${omittedImages.length === 1 ? "image exceeds" : "images exceed"} the 6-image limit and would be left out.`
-        : "";
     rows.push({ source, action: "create", reason: `Would create a draft.${extra}`, draft });
   }
   return rows;

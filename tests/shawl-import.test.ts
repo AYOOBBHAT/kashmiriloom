@@ -4,8 +4,10 @@ import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { after, describe, test } from "node:test";
-import { discoverShawls, importSku, importSlug, planShawlImport } from "@/lib/catalogue/shawl-import";
+import { discoverShawls, importerImagePatch, importSku, importSlug, planShawlImport } from "@/lib/catalogue/shawl-import";
+import { visibleGalleryImages } from "@/lib/products/gallery";
 import { isApprovedImageUrl } from "@/lib/products/images";
+import { MAX_PRODUCT_IMAGES } from "@/lib/products/limits";
 import { parseInrToPaise } from "@/lib/products/validate";
 import { productShownPublicly } from "@/lib/catalogue/visibility";
 
@@ -49,9 +51,9 @@ describe("shawl import planning", () => {
       products: [],
       update: false,
     });
-    assert.equal(planned[0]?.draft?.images.length, 6);
+    assert.equal(planned[0]?.draft?.images.length, 7);
     assert.equal(planned[0]?.draft?.images[0]?.primary, true);
-    assert.equal(planned[0]?.draft?.omittedImages.length, 1);
+    assert.equal(planned[0]?.draft?.omittedImages.length, 0);
     assert.equal(planned[0]?.draft?.status, "draft");
   });
 
@@ -116,5 +118,75 @@ describe("shawl import planning", () => {
     assert.match(gallery, /revealed\.has\(index\)/);
     assert.match(gallery, /quality=\{60\}/);
     assert.doesNotMatch(gallery, /formats:\s*\[.*avif/);
+    const blank = planShawlImport({
+      shawls: [{ ...shawl, images: [] }],
+      categories,
+      products: [],
+      update: false,
+    });
+    assert.equal(blank[0]?.action, "skip");
+    const many = {
+      ...shawl,
+      folderName: "1.20",
+      images: Array.from({ length: MAX_PRODUCT_IMAGES + 1 }, (_, index) => ({
+        name: `${index}.png`,
+        relativePath: `${String(index).padStart(2, "0")}.png`,
+        url: `/Kani shawls/1.20/${index}.png`,
+      })),
+    };
+    const capped = planShawlImport({ shawls: [many], categories, products: [], update: false });
+    assert.equal(capped[0]?.draft?.images.length, MAX_PRODUCT_IMAGES);
+    assert.equal(capped[0]?.draft?.omittedImages.length, 1);
+    const owned = {
+      slug: "kani-1-18",
+      sku: "KL-KANI-1-18",
+      imageUrls: ["/Kani shawls/1.18/a.png"],
+      status: "active",
+      pricePaise: 900_000,
+    };
+    const incomplete = planShawlImport({ shawls: [shawl], categories, products: [owned], update: false });
+    assert.equal(incomplete[0]?.action, "images-incomplete");
+    assert.match(incomplete[0]?.reason ?? "", /active/);
+    const repair = planShawlImport({ shawls: [shawl], categories, products: [owned], update: true });
+    assert.equal(repair[0]?.action, "update");
+    const patch = importerImagePatch(repair[0]?.draft ?? first[0]!.draft!);
+    assert.deepEqual(Object.keys(patch), ["images"]);
+    assert.equal(patch.images.length, 2);
+    assert.equal(patch.images[0]?.primary, true);
+    assert.equal(visibleGalleryImages(patch.images).length, 2);
+    assert.equal(visibleGalleryImages(Array.from({ length: 8 }, (_, index) => index)).length, 8);
+  });
+
+  test("accounts for every source shawl folder without a duplicate on the next run", async () => {
+    const shawls = await discoverShawls(`${process.cwd()}/public`);
+    const categories = [
+      { slug: "kalamkari", name: "kalamkari Shawls" },
+      { slug: "kani", name: "Kani shawls" },
+      { slug: "machine-embroidery", name: "Machine  Embroidery" },
+      { slug: "sozni-shawls", name: "Sozni Shawls" },
+      { slug: "zari-shawls", name: "Zari Shawls" },
+    ];
+    const plan = planShawlImport({ shawls, categories, products: [], update: false });
+    const creates = plan.filter((row) => row.action === "create");
+    assert.equal(creates.length, 30);
+    assert.equal(plan.some((row) => row.action === "missing-category" || row.action === "skip"), false);
+    assert.equal(creates.every((row) => row.draft?.status === "draft" && row.draft.pricePaise === 500_000), true);
+    assert.equal(creates.every((row) => (row.draft?.omittedImages.length ?? 1) === 0), true);
+    const widest = Math.max(...creates.map((row) => row.draft?.images.length ?? 0));
+    assert.ok(widest > 6);
+    assert.equal(visibleGalleryImages(creates.find((row) => (row.draft?.images.length ?? 0) === widest)?.draft?.images ?? []).length, widest);
+    const repeat = planShawlImport({
+      shawls,
+      categories,
+      products: creates.map((row) => ({
+        slug: row.draft?.slug ?? "",
+        sku: row.draft?.sku ?? "",
+        imageUrls: row.draft?.images.map((image) => image.url),
+        status: "draft" as const,
+        pricePaise: row.draft?.pricePaise,
+      })),
+      update: true,
+    });
+    assert.equal(repeat.every((row) => row.action === "already-imported"), true);
   });
 });

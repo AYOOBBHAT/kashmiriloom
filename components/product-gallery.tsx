@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Image from "next/image";
 import type { ProductImage } from "@/lib/products/types";
+import { visibleGalleryImages } from "@/lib/products/gallery";
 
 type ProductGalleryProps = {
   images: ProductImage[];
@@ -44,8 +45,8 @@ export function ProductGallery({ images, name }: ProductGalleryProps) {
           className="object-cover"
         />
       </div>
-      <ul className="mt-4 flex list-none gap-3" aria-label={`Views of ${name}`}>
-        {images.map((image, index) => {
+      <ul className="mt-4 flex list-none flex-wrap gap-3" aria-label={`Views of ${name}`}>
+        {visibleGalleryImages(images).map((image, index) => {
           const selected = index === safeIndex;
           const showThumb = !selected && revealed.has(index);
           return (

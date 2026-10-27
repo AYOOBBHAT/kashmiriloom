@@ -16,3 +16,8 @@ export function withPrimaryImage<T extends { primary?: boolean }>(images: T[]): 
 export function primaryOf<T extends { primary?: boolean }>(images: T[]): T | undefined {
   return images.find((image) => image.primary) ?? images[0];
 }
+
+/** Every photograph on the product is part of the gallery. The catalogue ceiling is enforced before save. */
+export function visibleGalleryImages<T>(images: readonly T[]): T[] {
+  return [...images];
+}

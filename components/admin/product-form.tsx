@@ -6,6 +6,7 @@ import { uploadCatalogueImageFile } from "@/components/admin/direct-upload";
 import { FormFeedback } from "@/components/admin/form-feedback";
 import type { ProductFormState } from "@/app/admin/actions";
 import type { ProductStatus } from "@/lib/products/status";
+import { MAX_PRODUCT_IMAGES } from "@/lib/products/limits";
 
 type ImageRow = { key: string; url: string; alt: string; primary: boolean };
 
@@ -169,8 +170,8 @@ export function ProductForm({
     if (!file) {
       return;
     }
-    if (images.length >= 6) {
-      setUploadMessage("Six images is the maximum.");
+    if (images.length >= MAX_PRODUCT_IMAGES) {
+      setUploadMessage(`${MAX_PRODUCT_IMAGES} images is the maximum.`);
       return;
     }
     setUploading(true);
@@ -182,7 +183,7 @@ export function ProductForm({
       return;
     }
     setImages((current) =>
-      current.length >= 6
+        current.length >= MAX_PRODUCT_IMAGES
         ? current
         : [...current, { key: result.url, url: result.url, alt: "", primary: current.length === 0 }],
     );
@@ -399,7 +400,7 @@ export function ProductForm({
           onChange={(event) => {
             const url = event.target.value;
             event.target.value = "";
-            if (!url || images.length >= 6) {
+            if (!url || images.length >= MAX_PRODUCT_IMAGES) {
               return;
             }
             setImages((current) => [...current, { key: `${url}-${current.length}`, url, alt: "", primary: current.length === 0 }]);
@@ -423,7 +424,7 @@ export function ProductForm({
               type="file"
               form="catalogue-file-upload"
               accept="image/jpeg,image/png,image/webp"
-              disabled={uploading || images.length >= 6}
+              disabled={uploading || images.length >= MAX_PRODUCT_IMAGES}
               onChange={(event) => {
                 const file = event.target.files?.[0];
                 event.target.value = "";

@@ -140,7 +140,7 @@ describe("catalogue visibility rules", () => {
     const images = validateProductDraft({ ...productInput("active"), images: [] });
     assert.equal(images.ok, false);
     if (!images.ok) {
-      assert.match(images.errors.images ?? "", /1 and 6/);
+      assert.match(images.errors.images ?? "", /1 and 12/);
     }
     const same = validateProductDraft(productInput("active", { collectionSlugs: ["pashmina"] }));
     assert.equal(same.ok, false);
