@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { describe, test } from "node:test";
-import { productPageJsonLd, rupeesFromPaise, serializeJsonLd, type StructuredProduct } from "@/lib/site/structured-data";
+import { canonicalImageUrl, productPageJsonLd, rupeesFromPaise, serializeJsonLd, type StructuredProduct } from "@/lib/site/structured-data";
 
 const shawl: StructuredProduct = {
   name: "Nishat",
@@ -65,6 +65,25 @@ describe("product structured data", () => {
     assert.equal(html.includes("<script"), false);
     assert.equal(html.includes("&"), false);
     assert.match(html, /\\u003c\/script\\u003e/);
+  });
+
+  test("encodes a public image path that contains spaces and commas", () => {
+    const src = "/Kani shawls/1.18/ChatGPT Image 22 Oct 2026, 22_32_34.png";
+    assert.equal(
+      canonicalImageUrl(src),
+      "https://kashmiriloom.com/Kani%20shawls/1.18/ChatGPT%20Image%2022%20Oct%202026%2C%2022_32_34.png",
+    );
+    assert.equal(canonicalImageUrl(encodeURI(src)), canonicalImageUrl(src));
+    const data = productPageJsonLd({ ...shawl, images: [{ src }] });
+    assert.ok(data);
+    const graph = data["@graph"] as Array<Record<string, unknown>>;
+    const product = graph.find((item) => item["@type"] === "Product");
+    assert.deepEqual(product?.image, [canonicalImageUrl(src)]);
+    assert.equal(canonicalImageUrl("/Kani shawls/../secret.png"), null);
+    assert.equal(canonicalImageUrl("/Kani%20shawls/%2e%2e/secret.png"), null);
+    assert.equal(canonicalImageUrl("/Kani shawls/%2e%2e/secret.png"), null);
+    assert.equal(canonicalImageUrl("/Kani%5cshawls/photo.png"), null);
+    assert.equal(canonicalImageUrl("//kashmiriloom.com/images/shawl-nishat.jpg"), null);
   });
 
   test("matches the visible shop, collection, and product breadcrumb", () => {

@@ -68,8 +68,15 @@ export function isImportedShawlImage(url: string): boolean {
   } catch {
     return false;
   }
-  if (decoded.includes("..") || decoded.includes("\\") || /[\u0000-\u001f]/.test(decoded)) {
+  if (decoded.includes("\\") || decoded.includes("?") || decoded.includes("#") || /[\u0000-\u001f]/.test(decoded)) {
     return false;
+  }
+  const segments = decoded.split("/");
+  for (let index = 1; index < segments.length; index += 1) {
+    const segment = segments[index] ?? "";
+    if (segment.length === 0 || segment === "." || segment === "..") {
+      return false;
+    }
   }
   const extension = decoded.slice(decoded.lastIndexOf(".")).toLowerCase();
   if (!SHAWL_IMAGE_EXTENSIONS.some((item) => item === extension)) {

@@ -46,7 +46,7 @@ export function productPageJsonLd(product: StructuredProduct | null): Record<str
   }
   const url = absoluteUrl(`/products/${product.slug}`);
   const images = product.images.flatMap((image) => {
-    const absolute = absoluteImage(image.src);
+    const absolute = canonicalImageUrl(image.src);
     return absolute ? [absolute] : [];
   });
   const graph: Record<string, unknown> = {
@@ -113,12 +113,35 @@ function productBreadcrumb(product: StructuredProduct, productUrl: string): Reco
   };
 }
 
-function absoluteImage(src: string): string | null {
-  if (src.startsWith("/") && !src.startsWith("//") && !src.includes("..") && !src.includes("\\") && !/[\s]/.test(src)) {
-    return absoluteUrl(src);
-  }
-  if (src.startsWith("https://") && src.length <= 500 && !/[\s\\]/.test(src)) {
+/** A catalogue image as an absolute URL. Spaces and commas are encoded. Traversal is rejected. */
+export function canonicalImageUrl(src: string): string | null {
+  if (src.startsWith("https://") && src.length <= 500 && !/[\s\\]/.test(src) && !src.includes("..")) {
     return src;
   }
-  return null;
+  const path = encodedPublicImagePath(src);
+  return path ? absoluteUrl(path) : null;
+}
+
+function encodedPublicImagePath(src: string): string | null {
+  if (!src.startsWith("/") || src.startsWith("//") || src.length > 500 || src.includes("\\") || src.includes("?") || src.includes("#")) {
+    return null;
+  }
+  let decoded = src;
+  try {
+    decoded = decodeURIComponent(src);
+  } catch {
+    return null;
+  }
+  if (!decoded.startsWith("/") || decoded.startsWith("//") || decoded.includes("\\") || decoded.includes("?") || decoded.includes("#") || /[\u0000-\u001f]/.test(decoded)) {
+    return null;
+  }
+  const segments = decoded.split("/");
+  for (let index = 1; index < segments.length; index += 1) {
+    const segment = segments[index] ?? "";
+    if (segment.length === 0 || segment === "." || segment === "..") {
+      return null;
+    }
+  }
+  const encoded = segments.map((segment, index) => (index === 0 ? "" : encodeURIComponent(segment))).join("/");
+  return encoded.length <= 500 ? encoded : null;
 }

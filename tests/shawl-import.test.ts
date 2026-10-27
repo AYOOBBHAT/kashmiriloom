@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
-import { mkdtemp, mkdir, writeFile, rm } from "node:fs/promises";
+import { readFileSync } from "node:fs";
+import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { after, describe, test } from "node:test";
@@ -104,5 +105,16 @@ describe("shawl import planning", () => {
       update: false,
     });
     assert.equal(missing[0]?.action, "missing-category");
+    assert.equal(isApprovedImageUrl("/Kani shawls/1.18/ChatGPT Image 22 Oct 2026, 22_32_34.png"), true);
+    assert.equal(isApprovedImageUrl("/Kani%20shawls/1.18/ChatGPT%20Image%2022%20Oct%202026%2C%2022_32_34.png"), true);
+    assert.equal(isApprovedImageUrl("/Kani shawls/../secret.png"), false);
+    assert.equal(isApprovedImageUrl("/Kani%20shawls/%2e%2e/secret.png"), false);
+    assert.equal(isApprovedImageUrl("/Kani%5cshawls/photo.png"), false);
+    assert.equal(isApprovedImageUrl("/images/not-a-catalogue-file.png"), false);
+    const gallery = readFileSync("components/product-gallery.tsx", "utf8");
+    assert.match(gallery, /preload=\{safeIndex === 0\}/);
+    assert.match(gallery, /revealed\.has\(index\)/);
+    assert.match(gallery, /quality=\{60\}/);
+    assert.doesNotMatch(gallery, /formats:\s*\[.*avif/);
   });
 });
