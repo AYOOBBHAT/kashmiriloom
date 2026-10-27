@@ -1,7 +1,7 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
+import { CatalogueImage } from "@/components/catalogue-image";
 import { formatInrFromPaise } from "@/lib/money";
 import { MAX_BAG_QUANTITY } from "@/lib/bag";
 import { useBag } from "@/components/bag-provider";
@@ -93,7 +93,7 @@ export function BagPanel({ onNavigate }: { onNavigate: () => void }) {
               onClick={onNavigate}
               className="relative h-20 w-16 shrink-0 overflow-hidden bg-forest/5"
             >
-              <Image src={product.image} alt="" fill sizes="64px" className="object-cover" />
+              <CatalogueImage src={product.image} alt="" fill sizes="64px" className="object-cover" />
               <span className="sr-only">View {product.name}</span>
             </Link>
             <div className="min-w-0 flex-1">

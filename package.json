@@ -17,6 +17,7 @@
     "test:seo": "node --conditions=react-server --experimental-strip-types --import ./scripts/register.mjs --test tests/seo.test.ts tests/structured-data.test.ts",
     "import:shawls": "node --conditions=react-server --experimental-strip-types --import ./scripts/register.mjs scripts/import-shawls.ts",
     "activate:shawls": "node --conditions=react-server --experimental-strip-types --import ./scripts/register.mjs scripts/activate-shawls.ts",
+    "migrate:shawl-images": "node --conditions=react-server --experimental-strip-types --import ./scripts/register.mjs scripts/migrate-shawl-images.ts",
     "admin:bootstrap": "node --conditions=react-server --experimental-strip-types --import ./scripts/register.mjs scripts/bootstrap-admin.ts"
   },
   "dependencies": {

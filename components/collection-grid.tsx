@@ -1,7 +1,7 @@
-import Image from "next/image";
 import Link from "next/link";
 import { listPublicCategories, type PublicCategory } from "@/lib/categories/public";
 import { withCatalogue } from "@/lib/products/repository";
+import { CatalogueImage } from "@/components/catalogue-image";
 import { Container } from "@/components/container";
 import { SectionHeading } from "@/components/section-heading";
 
@@ -22,7 +22,7 @@ export async function CollectionGrid() {
               <li key={category.slug}>
                 <Link href={`/collections/${category.slug}`} prefetch={true} className="group block">
                   <div className="relative aspect-[3/4] overflow-hidden bg-forest/10">
-                    <Image
+                    <CatalogueImage
                       src={category.image}
                       alt={category.imageAlt || category.name}
                       fill

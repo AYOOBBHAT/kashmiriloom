@@ -1,10 +1,10 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
-import Image from "next/image";
 import { notFound, redirect } from "next/navigation";
 import { resolveCategoryRoute, type PublicCategory } from "@/lib/categories/public";
 import { listProductsByCategory, withCatalogue, type CatalogueResult } from "@/lib/products/repository";
 import type { ProductDto } from "@/lib/products/types";
+import { CatalogueImage } from "@/components/catalogue-image";
 import { CatalogueLoading, CatalogueProblem } from "@/components/catalogue-status";
 import { Container } from "@/components/container";
 import { ProductCard } from "@/components/product-card";
@@ -66,7 +66,7 @@ function CollectionBody({
       <Container>
         <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
           <div className="relative aspect-[4/3] overflow-hidden bg-forest/5">
-            <Image src={category.image} alt={category.imageAlt} fill preload quality={60} sizes="(min-width: 1024px) 45vw, 100vw" className="object-cover" />
+            <CatalogueImage src={category.image} alt={category.imageAlt} fill preload quality={60} sizes="(min-width: 1024px) 45vw, 100vw" className="object-cover" />
           </div>
           <SectionHeading id={`${category.slug}-intro`} level="h1" eyebrow="Collection" title={category.name}>
             <p>{category.description} Prices on this page are shown in INR.</p>

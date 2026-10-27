@@ -52,7 +52,7 @@ export function isApprovedImageUrl(url: string): boolean {
     return false;
   }
   const prefix = `https://res.cloudinary.com/${cloud}/image/upload/`;
-  return url.startsWith(prefix) && url.length <= 500 && !/[\s\\]/.test(url);
+  return url.startsWith(prefix) && url.length <= 500 && !/[\s\\?#]/.test(url) && !url.includes("..");
 }
 
 export function isImportedShawlImage(url: string): boolean {

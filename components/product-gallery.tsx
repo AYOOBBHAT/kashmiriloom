@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
 import type { ProductImage } from "@/lib/products/types";
+import { CatalogueImage } from "@/components/catalogue-image";
 import { visibleGalleryImages } from "@/lib/products/gallery";
 
 type ProductGalleryProps = {
@@ -34,7 +34,7 @@ export function ProductGallery({ images, name }: ProductGalleryProps) {
   return (
     <div>
       <div className="relative aspect-square overflow-hidden bg-forest/5">
-        <Image
+        <CatalogueImage
           src={current.src}
           alt={current.alt}
           fill
@@ -63,7 +63,7 @@ export function ProductGallery({ images, name }: ProductGalleryProps) {
                 }`}
               >
                 {showThumb ? (
-                  <Image src={image.src} alt="" fill sizes="80px" className="object-cover" />
+                  <CatalogueImage src={image.src} alt="" fill sizes="80px" className="object-cover" />
                 ) : (
                   <span aria-hidden="true" className="absolute inset-0 grid place-items-center font-serif text-lg text-forest">
                     {index + 1}

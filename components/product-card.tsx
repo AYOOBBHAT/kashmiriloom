@@ -1,5 +1,5 @@
-import Image from "next/image";
 import Link from "next/link";
+import { CatalogueImage } from "@/components/catalogue-image";
 import { formatInrFromPaise } from "@/lib/money";
 import type { ProductDto } from "@/lib/products/types";
 
@@ -17,7 +17,7 @@ export function ProductCard({ product, featured = false }: ProductCardProps) {
             featured ? "aspect-[4/5] sm:aspect-[16/10]" : "aspect-square"
           }`}
         >
-          <Image
+          <CatalogueImage
             src={product.image}
             alt={product.imageAlt}
             fill
