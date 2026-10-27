@@ -110,7 +110,7 @@ export function publicImageUrl(sourceDirectory: string, relativeFile: string): s
   return `/${parts.join("/")}`;
 }
 
-function matchCategory(
+export function matchShawlCategory(
   source: (typeof SHAWL_SOURCES)[number],
   categories: CatalogueCategory[],
 ): CatalogueCategory | "ambiguous" | null {
@@ -218,7 +218,7 @@ export function planShawlImport(input: {
       });
       continue;
     }
-    const category = matchCategory(definition, input.categories);
+    const category = matchShawlCategory(definition, input.categories);
     if (category === "ambiguous") {
       rows.push({ source, action: "missing-category", reason: "More than one category matches this folder." });
       continue;

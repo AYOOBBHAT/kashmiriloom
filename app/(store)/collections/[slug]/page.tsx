@@ -3,7 +3,8 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import { notFound, redirect } from "next/navigation";
 import { resolveCategoryRoute, type PublicCategory } from "@/lib/categories/public";
-import { listProductsByCategory, withCatalogue } from "@/lib/products/repository";
+import { listProductsByCategory, withCatalogue, type CatalogueResult } from "@/lib/products/repository";
+import type { ProductDto } from "@/lib/products/types";
 import { CatalogueLoading, CatalogueProblem } from "@/components/catalogue-status";
 import { Container } from "@/components/container";
 import { ProductCard } from "@/components/product-card";
@@ -34,8 +35,8 @@ export async function generateMetadata({ params }: CollectionPageProps): Promise
   };
 }
 
-async function CollectionProducts({ category }: { category: string }) {
-  const result = await withCatalogue(() => listProductsByCategory(category));
+async function CollectionProducts({ products }: { products: Promise<CatalogueResult<ProductDto[]>> }) {
+  const result = await products;
   if (!result.ok) {
     return <CatalogueProblem problem={result.problem} />;
   }
@@ -53,7 +54,13 @@ async function CollectionProducts({ category }: { category: string }) {
   );
 }
 
-function CollectionBody({ category }: { category: PublicCategory }) {
+function CollectionBody({
+  category,
+  products,
+}: {
+  category: PublicCategory;
+  products: Promise<CatalogueResult<ProductDto[]>>;
+}) {
   return (
     <div className="py-16 sm:py-24">
       <Container>
@@ -66,7 +73,7 @@ function CollectionBody({ category }: { category: PublicCategory }) {
           </SectionHeading>
         </div>
         <Suspense fallback={<CatalogueLoading label="Loading this collection." />}>
-          <CollectionProducts category={category.slug} />
+          <CollectionProducts products={products} />
         </Suspense>
       </Container>
     </div>
@@ -75,6 +82,7 @@ function CollectionBody({ category }: { category: PublicCategory }) {
 
 async function CollectionRoute({ params }: CollectionPageProps) {
   const { slug } = await params;
+  const products = withCatalogue(() => listProductsByCategory(slug));
   const result = await withCatalogue(() => resolveCategoryRoute(slug));
   if (!result.ok) {
     return (
@@ -91,7 +99,7 @@ async function CollectionRoute({ params }: CollectionPageProps) {
   if (result.data.kind === "missing") {
     notFound();
   }
-  return <CollectionBody category={result.data.category} />;
+  return <CollectionBody category={result.data.category} products={products} />;
 }
 
 export default function CollectionPage({ params }: CollectionPageProps) {

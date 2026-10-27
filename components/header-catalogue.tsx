@@ -1,3 +1,4 @@
+import { catalogueClientProduct } from "@/lib/catalogue/client-product";
 import { listPublicCategories } from "@/lib/categories/public";
 import { listActiveProducts, withCatalogue } from "@/lib/products/repository";
 import { CatalogueBridge } from "@/components/catalogue-bridge";
@@ -20,7 +21,12 @@ export async function HeaderCatalogue() {
 
   return (
     <>
-      <CatalogueBridge status="ready" products={result.data} categories={navCategories} message={null} />
+      <CatalogueBridge
+        status="ready"
+        products={result.data.map(catalogueClientProduct)}
+        categories={navCategories}
+        message={null}
+      />
       <SiteHeader />
     </>
   );

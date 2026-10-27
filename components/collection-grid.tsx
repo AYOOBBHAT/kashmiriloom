@@ -20,7 +20,7 @@ export async function CollectionGrid() {
           <ul className="mt-12 grid min-w-0 list-none gap-10 sm:grid-cols-2 lg:mt-16 lg:grid-cols-3 lg:gap-8">
             {categories.map((category) => (
               <li key={category.slug}>
-                <Link href={`/collections/${category.slug}`} className="group block">
+                <Link href={`/collections/${category.slug}`} prefetch={true} className="group block">
                   <div className="relative aspect-[3/4] overflow-hidden bg-forest/10">
                     <Image
                       src={category.image}

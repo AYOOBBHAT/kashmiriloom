@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { expirePublicCatalogue } from "@/lib/catalogue/public-cache";
 import { redirect, unstable_rethrow } from "next/navigation";
 import {
   createManagedCategory,
@@ -21,6 +22,7 @@ export type CategoryFormState = {
 };
 
 function revalidateCategories(slug?: string) {
+  expirePublicCatalogue();
   revalidatePath("/", "layout");
   revalidatePath("/admin/categories");
   revalidatePath("/admin/products");

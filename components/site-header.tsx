@@ -92,6 +92,7 @@ export function SiteHeader() {
             <Link
               key={category.slug}
               href={`/collections/${category.slug}`}
+              prefetch={true}
               className="text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-forest hover:text-burgundy"
             >
               {category.name}
@@ -162,6 +163,7 @@ export function SiteHeader() {
             <Link
               key={category.slug}
               href={`/collections/${category.slug}`}
+              prefetch={true}
               onClick={() => setMenuOpen(false)}
               className="font-serif text-4xl text-forest"
             >

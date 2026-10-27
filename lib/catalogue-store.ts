@@ -1,7 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import type { ProductDto } from "@/lib/products/types";
+import type { CatalogueClientProduct } from "@/lib/catalogue/client-product";
 
 export type CatalogueStatus = "loading" | "ready" | "unavailable";
 
@@ -9,7 +9,7 @@ export type CatalogueNavCategory = { slug: string; name: string };
 
 export type CatalogueSnapshot = {
   status: CatalogueStatus;
-  products: ProductDto[];
+  products: CatalogueClientProduct[];
   categories: CatalogueNavCategory[];
   message: string | null;
 };
@@ -43,6 +43,7 @@ function sameSnapshot(left: CatalogueSnapshot, right: CatalogueSnapshot): boolea
       other.name === product.name &&
       other.stockQuantity === product.stockQuantity &&
       other.image === product.image &&
+      other.description === product.description &&
       other.categoryName === product.categoryName
     );
   });

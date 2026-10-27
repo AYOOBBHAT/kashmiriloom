@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { expirePublicCatalogue } from "@/lib/catalogue/public-cache";
 import { headers } from "next/headers";
 import { connection } from "next/server";
 import { clientAddress } from "@/lib/auth/rate-limit";
@@ -58,6 +59,7 @@ export async function confirmCheckout(
   }
   const result = await confirmTestPayment(reference, paymentId, signature);
   if (result.ok) {
+    expirePublicCatalogue();
     revalidatePath("/");
     revalidatePath("/shop");
     revalidatePath("/admin");

@@ -20,7 +20,7 @@ import {
   type BagLine,
 } from "@/lib/bag";
 import { getCatalogueSnapshot, useCatalogue } from "@/lib/catalogue-store";
-import type { ProductDto } from "@/lib/products/types";
+import type { CatalogueClientProduct } from "@/lib/catalogue/client-product";
 
 const BAG_CHANGE_EVENT = "kashmiriloom-bag-change";
 
@@ -34,7 +34,7 @@ type BagContextValue = {
   subtotalPaise: number | null;
   catalogueStatus: "loading" | "ready" | "unavailable";
   catalogueMessage: string | null;
-  productFor: (slug: string) => ProductDto | undefined;
+  productFor: (slug: string) => CatalogueClientProduct | undefined;
   add: (slug: string, quantity?: number) => AddResult;
   setQuantity: (slug: string, quantity: number) => void;
   remove: (slug: string) => void;
@@ -64,7 +64,7 @@ function readServerBag() {
   return "";
 }
 
-function knownSlugs(products: ProductDto[] | null) {
+function knownSlugs(products: CatalogueClientProduct[] | null) {
   if (!products) {
     return null;
   }

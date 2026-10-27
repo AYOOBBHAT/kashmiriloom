@@ -15,7 +15,10 @@ import {
   productSaveNotice,
   productShownPublicly,
 } from "@/lib/catalogue/visibility";
+import { catalogueClientProduct } from "@/lib/catalogue/client-product";
+import { PUBLIC_CATALOGUE_TAG } from "@/lib/catalogue/public-tag";
 import { categoryMembership } from "@/lib/products/membership";
+import { MAX_PUBLIC_PRODUCTS } from "@/lib/shop";
 import { activeForStatus } from "@/lib/products/status";
 import { validateProductDraft } from "@/lib/products/validate";
 
@@ -214,5 +217,46 @@ describe("catalogue visibility rules", () => {
     assert.match(productFormSource, /Saving\.\.\./);
     assert.match(categoryFormSource, /role="alert"/);
     assert.match(productFormSource, /disabled=\{waiting\}/);
+  });
+
+  test("caches the public catalogue and keeps category lists limited to active shawls", () => {
+    const repository = readFileSync("lib/products/repository.ts", "utf8");
+    const categories = readFileSync("lib/categories/public.ts", "utf8");
+    const collection = readFileSync("app/(store)/collections/[slug]/page.tsx", "utf8");
+    const card = readFileSync("components/product-card.tsx", "utf8");
+    assert.equal(PUBLIC_CATALOGUE_TAG, "catalogue");
+    assert.match(repository, /"use cache"/);
+    assert.match(repository, /cacheTag\(PUBLIC_CATALOGUE_TAG\)/);
+    assert.match(repository, /cacheLife\("minutes"\)/);
+    assert.match(repository, /readProducts\(categoryMembership\(category\), "edited", MAX_PUBLIC_PRODUCTS\)/);
+    assert.equal(MAX_PUBLIC_PRODUCTS >= 30, true);
+    assert.match(categories, /Promise\.all\(\[/);
+    assert.match(collection, /const products = withCatalogue\(\(\) => listProductsByCategory\(slug\)\);/);
+    assert.doesNotMatch(card, /preload/);
+    assert.match(readFileSync("components/site-header.tsx", "utf8"), /prefetch=\{true\}/);
+    assert.match(readFileSync("app/admin/actions.ts", "utf8"), /expirePublicCatalogue\(\)/);
+    assert.match(readFileSync("app/admin/category-actions.ts", "utf8"), /expirePublicCatalogue\(\)/);
+    assert.match(readFileSync("app/api/razorpay/webhook/route.ts", "utf8"), /revalidatePublicCatalogue\(\)/);
+    const client = catalogueClientProduct({
+      slug: "kani-1-18",
+      name: "1.18",
+      description: "A kani shawl.",
+      summary: "A kani shawl.",
+      category: "kani",
+      categoryName: "Kani shawls",
+      pricePaise: 500000,
+      compareAtPricePaise: null,
+      images: [{ src: "/Kani shawls/1.18/one.png", alt: "One" }, { src: "/Kani shawls/1.18/two.png", alt: "Two" }],
+      image: "/Kani shawls/1.18/one.png",
+      imageAlt: "One",
+      sku: "KL-KANI-1-18",
+      stockQuantity: 1,
+      featured: false,
+      available: true,
+      variants: [],
+    });
+    assert.equal(client.image, "/Kani shawls/1.18/one.png");
+    assert.equal("images" in client, false);
+    assert.equal(client.pricePaise, 500000);
   });
 });

@@ -22,7 +22,7 @@ function CollectionLinks({ categories }: { categories: { slug: string; name: str
     <ul className="mt-4 space-y-2">
       {categories.map((category) => (
         <li key={category.slug}>
-          <Link href={`/collections/${category.slug}`} className="text-base hover:text-gold">
+          <Link href={`/collections/${category.slug}`} prefetch={true} className="text-base hover:text-gold">
             {category.name}
           </Link>
         </li>

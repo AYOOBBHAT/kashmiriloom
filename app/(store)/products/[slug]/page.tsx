@@ -85,7 +85,7 @@ async function ProductDetail({ params }: ProductPageProps) {
           </li>
           <li className="flex items-center gap-2">
               <span aria-hidden="true">/</span>
-              <Link href={`/collections/${product.category}`} className="underline decoration-gold underline-offset-4">
+              <Link href={`/collections/${product.category}`} prefetch={true} className="underline decoration-gold underline-offset-4">
                 {product.categoryName}
               </Link>
             </li>
@@ -124,7 +124,7 @@ async function ProductDetail({ params }: ProductPageProps) {
                 Category
               </dt>
               <dd className="mt-1 text-base text-ink">
-                <Link href={`/collections/${product.category}`} className="underline decoration-gold underline-offset-4">
+                <Link href={`/collections/${product.category}`} prefetch={true} className="underline decoration-gold underline-offset-4">
                   {product.categoryName}
                 </Link>
               </dd>

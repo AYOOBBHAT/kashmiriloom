@@ -2,11 +2,11 @@
 
 import { useEffect } from "react";
 import { publishCatalogue, type CatalogueNavCategory, type CatalogueStatus } from "@/lib/catalogue-store";
-import type { ProductDto } from "@/lib/products/types";
+import type { CatalogueClientProduct } from "@/lib/catalogue/client-product";
 
 type CatalogueBridgeProps = {
   status: CatalogueStatus;
-  products: ProductDto[];
+  products: CatalogueClientProduct[];
   categories: CatalogueNavCategory[];
   message: string | null;
 };

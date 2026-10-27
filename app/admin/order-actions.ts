@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { expirePublicCatalogue } from "@/lib/catalogue/public-cache";
 import { redirect } from "next/navigation";
 import { CatalogueAccessError } from "@/lib/catalogue-error";
 import { updateOrderFulfilment } from "@/lib/orders/admin";
@@ -22,6 +23,7 @@ export async function saveFulfilment(
     if (!result.ok) {
       return { message: result.message };
     }
+    expirePublicCatalogue();
     revalidatePath("/admin");
     revalidatePath("/admin/orders");
     revalidatePath(`/admin/orders/${reference}`);

@@ -1,7 +1,8 @@
 import "server-only";
 
-import { io } from "next/cache";
+import { cacheLife, cacheTag, io } from "next/cache";
 import { fallbackCategoryName, seedCategories } from "@/lib/categories/defaults";
+import { PUBLIC_CATALOGUE_TAG } from "@/lib/catalogue/public-tag";
 import { loadCategoryNames } from "@/lib/categories/names";
 import { isSlug } from "@/lib/catalogue/slug";
 import {
@@ -59,6 +60,9 @@ function toPublic(record: {
 }
 
 async function readCategories(): Promise<{ stored: boolean; active: PublicCategory[] }> {
+  "use cache";
+  cacheTag(PUBLIC_CATALOGUE_TAG);
+  cacheLife("minutes");
   await io();
   try {
     await connectToDatabase();
@@ -109,28 +113,33 @@ export function labelForCategory(slug: string, names?: Map<string, string>): str
 }
 
 export async function resolveCategoryRoute(slug: string): Promise<CategoryRoute> {
+  "use cache";
+  cacheTag(PUBLIC_CATALOGUE_TAG);
+  cacheLife("minutes");
   if (!isSlug(slug)) {
     return { kind: "missing" };
   }
   await io();
   try {
     await connectToDatabase();
-    const count = await Category.countDocuments({});
+    const [count, current] = await Promise.all([
+      Category.countDocuments({}),
+      Category.findOne({ slug })
+        .select("slug name description imageUrl imageAlt displayOrder active")
+        .lean<{
+          slug: string;
+          name: string;
+          description: string;
+          imageUrl?: string;
+          imageAlt?: string;
+          displayOrder: number;
+          active: boolean;
+        } | null>(),
+    ]);
     if (count === 0) {
       const fallback = fallbackList().find((category) => category.slug === slug);
       return fallback ? { kind: "fallback", category: fallback } : { kind: "missing" };
     }
-    const current = await Category.findOne({ slug })
-      .select("slug name description imageUrl imageAlt displayOrder active")
-      .lean<{
-        slug: string;
-        name: string;
-        description: string;
-        imageUrl?: string;
-        imageAlt?: string;
-        displayOrder: number;
-        active: boolean;
-      } | null>();
     if (current?.active) {
       return { kind: "active", category: toPublic(current) };
     }

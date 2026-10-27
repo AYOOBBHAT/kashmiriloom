@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { expirePublicCatalogue } from "@/lib/catalogue/public-cache";
 import { headers } from "next/headers";
 import { redirect, unstable_rethrow } from "next/navigation";
 import { checkAdminCredentials } from "@/lib/auth/credentials";
@@ -41,6 +42,7 @@ function imagesFromForm(formData: FormData) {
 }
 
 function revalidateCatalogue(slug: string, category: string, collections: string[]) {
+  expirePublicCatalogue();
   revalidatePath("/", "layout");
   revalidatePath("/admin");
   revalidatePath("/admin/products");
@@ -143,6 +145,7 @@ export async function deactivateProduct(id: string): Promise<{ message: string }
     if (!updated) {
       return { message: "That shawl is no longer in the catalogue." };
     }
+    expirePublicCatalogue();
     revalidatePath("/", "layout");
     revalidatePath("/admin");
     revalidatePath("/admin/products");

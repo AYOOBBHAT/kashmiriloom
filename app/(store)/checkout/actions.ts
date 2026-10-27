@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { expirePublicCatalogue } from "@/lib/catalogue/public-cache";
 import { cookies, headers } from "next/headers";
 import { connection } from "next/server";
 import { clientAddress } from "@/lib/auth/rate-limit";
@@ -66,6 +67,7 @@ export async function placeOrder(
     packViewCookie(result.reference, result.viewToken),
     orderViewCookieOptions(process.env.NODE_ENV),
   );
+  expirePublicCatalogue();
   revalidatePath("/");
   revalidatePath("/shop");
   try {

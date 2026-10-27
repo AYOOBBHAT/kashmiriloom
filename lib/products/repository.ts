@@ -1,7 +1,8 @@
 import "server-only";
 
-import { io } from "next/cache";
+import { cacheLife, cacheTag, io } from "next/cache";
 import { categoryNameMap, labelForCategory } from "@/lib/categories/public";
+import { PUBLIC_CATALOGUE_TAG } from "@/lib/catalogue/public-tag";
 import {
   CatalogueAccessError,
   UNAVAILABLE_MESSAGE,
@@ -135,6 +136,9 @@ function sortSpec(sort: ShopSort): Record<string, 1 | -1> {
 }
 
 async function readProducts(filter: Record<string, unknown>, sort: ShopSort, limit: number) {
+  "use cache";
+  cacheTag(PUBLIC_CATALOGUE_TAG);
+  cacheLife("minutes");
   await io();
   try {
     await connectToDatabase();
