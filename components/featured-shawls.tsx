@@ -20,7 +20,7 @@ export async function FeaturedShawls() {
         ) : (
           <ul className="mt-12 grid min-w-0 list-none gap-x-6 gap-y-14 sm:grid-cols-2 lg:mt-16 lg:grid-cols-3 lg:gap-x-8">
             {result.data.map((product) => (
-              <li key={product.slug}>
+              <li key={product.slug} className="h-full">
                 <ProductCard product={product} />
               </li>
             ))}

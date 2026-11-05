@@ -22,10 +22,7 @@ export function shawlDeliveryUrl(cloudName: string, slug: string, index: number)
  * Browser URL for an already stored Cloudinary upload.
  * Format and quality are chosen by Cloudinary. Width follows the slot passed by next/image.
  */
-export function cloudinaryTransformedUrl(src: string, width: number): string | null {
-  if (!Number.isInteger(width) || width < 1 || width > 3840) {
-    return null;
-  }
+function cloudinaryUpload(src: string): { cloud: string; rest: string[] } | null {
   let parsed: URL;
   try {
     parsed = new URL(src);
@@ -54,8 +51,28 @@ export function cloudinaryTransformedUrl(src: string, width: number): string | n
   ) {
     return null;
   }
+  return { cloud, rest };
+}
+
+export function cloudinaryTransformedUrl(src: string, width: number): string | null {
+  if (!Number.isInteger(width) || width < 1 || width > 3840) {
+    return null;
+  }
+  const upload = cloudinaryUpload(src);
+  if (!upload) {
+    return null;
+  }
   const transform = `f_auto,q_auto:good,c_limit,w_${width}`;
-  return `https://${HOST}/${cloud}/image/upload/${transform}/${rest.join("/")}`;
+  return `https://${HOST}/${upload.cloud}/image/upload/${transform}/${upload.rest.join("/")}`;
+}
+
+/** Original pixel size for a stored upload. This request does not crop or resize the file. */
+export function cloudinaryInfoUrl(src: string): string | null {
+  const upload = cloudinaryUpload(src);
+  if (!upload) {
+    return null;
+  }
+  return `https://${HOST}/${upload.cloud}/image/upload/fl_getinfo/${upload.rest.join("/")}`;
 }
 
 export function isCloudinaryUploadUrl(src: string): boolean {

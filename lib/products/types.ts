@@ -1,6 +1,8 @@
 export type ProductImage = {
   src: string;
   alt: string;
+  width?: number | null;
+  height?: number | null;
 };
 
 export type ProductVariantChoice = {
@@ -24,6 +26,8 @@ export type ProductDto = {
   images: ProductImage[];
   image: string;
   imageAlt: string;
+  imageWidth?: number | null;
+  imageHeight?: number | null;
   sku: string;
   stockQuantity: number;
   featured: boolean;

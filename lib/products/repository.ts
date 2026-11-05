@@ -15,6 +15,7 @@ import { Product, type ProductAttrs } from "@/lib/models/product";
 import { isPaise } from "@/lib/money";
 import { categoryMembership } from "@/lib/products/membership";
 import { primaryOf } from "@/lib/products/gallery";
+import { measureImages } from "@/lib/catalogue/measure-image";
 import { publicImage } from "@/lib/products/images";
 import { parseDescriptionDocument, type DescriptionDocument } from "@/lib/products/description-doc";
 import { summaryFromDescription } from "@/lib/products/summary";
@@ -107,6 +108,8 @@ function toDto(record: ProductRecord, names: Map<string, string>, variants: Prod
     images: gallery.map(({ src, alt }) => ({ src, alt })),
     image: lead?.src ?? publicImage("", "", record.category).src,
     imageAlt: lead?.alt ?? publicImage("", "", record.category).alt,
+    imageWidth: null,
+    imageHeight: null,
     sku: record.sku,
     stockQuantity: record.stockQuantity,
     featured: record.featured,
@@ -151,9 +154,14 @@ async function readProducts(filter: Record<string, unknown>, sort: ShopSort, lim
         .limit(limit)
         .lean<ProductRecord[]>(),
     ]);
-    return docs.flatMap((doc) => {
+    const products = docs.flatMap((doc) => {
       const product = toDto(doc, names);
       return product ? [product] : [];
+    });
+    const sizes = await measureImages(products.map((product) => product.image));
+    return products.map((product, index) => {
+      const size = sizes[index];
+      return size ? { ...product, imageWidth: size.width, imageHeight: size.height } : product;
     });
   } catch (error) {
     if (error instanceof CatalogueAccessError) {
@@ -250,11 +258,12 @@ export async function getPublicProductRoute(slug: string): Promise<PublicProduct
   }
   const product = await getProductBySlug(slug);
   if (product) {
-    const [variants, descriptionDocument] = await Promise.all([
+    const [variants, descriptionDocument, images] = await Promise.all([
       variantChoicesFor(product.slug),
       descriptionDocumentFor(product.slug),
+      sizedProductImages(product.images),
     ]);
-    return { kind: "product", product: { ...product, variants }, descriptionDocument };
+    return { kind: "product", product: { ...product, images, variants }, descriptionDocument };
   }
   await io();
   await connectToDatabase();
@@ -263,6 +272,18 @@ export async function getPublicProductRoute(slug: string): Promise<PublicProduct
     return { kind: "redirect", slug: moved.slug };
   }
   return { kind: "missing" };
+}
+
+async function sizedProductImages(images: ProductDto["images"]): Promise<ProductDto["images"]> {
+  "use cache";
+  cacheTag(PUBLIC_CATALOGUE_TAG);
+  cacheLife("minutes");
+  await io();
+  const sizes = await measureImages(images.map((image) => image.src));
+  return images.map((image, index) => {
+    const size = sizes[index];
+    return size ? { ...image, width: size.width, height: size.height } : image;
+  });
 }
 
 async function variantChoicesFor(slug: string): Promise<ProductVariantChoice[]> {

@@ -178,7 +178,7 @@ export function ShopCatalog({
           ) : (
             <ul className="mt-10 grid min-w-0 list-none gap-x-6 gap-y-14 sm:grid-cols-2 lg:grid-cols-3 lg:gap-x-8">
               {products.map((product) => (
-                <li key={product.slug}>
+                <li key={product.slug} className="h-full">
                   <ProductCard product={product} />
                 </li>
               ))}

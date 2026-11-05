@@ -187,7 +187,7 @@ async function ProductDetail({ params }: ProductPageProps) {
           </h2>
           <ul className="mt-10 grid min-w-0 list-none gap-x-6 gap-y-14 sm:grid-cols-2 lg:grid-cols-3">
             {relatedResult.data.map((item) => (
-              <li key={item.slug}>
+              <li key={item.slug} className="h-full">
                 <ProductCard product={item} />
               </li>
             ))}

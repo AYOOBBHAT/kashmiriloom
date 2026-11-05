@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { ProductImage } from "@/lib/products/types";
 import { CatalogueImage } from "@/components/catalogue-image";
+import { PhotoFrame } from "@/components/photo-frame";
 import { visibleGalleryImages } from "@/lib/products/gallery";
 
 type ProductGalleryProps = {
@@ -33,18 +34,16 @@ export function ProductGallery({ images, name }: ProductGalleryProps) {
 
   return (
     <div>
-      <div className="relative aspect-[3/4] overflow-hidden bg-forest/5">
-        <CatalogueImage
-          src={current.src}
-          alt={current.alt}
-          fill
-          preload={safeIndex === 0}
-          loading={safeIndex === 0 ? undefined : "eager"}
-          quality={60}
-          sizes="(min-width: 1024px) 48vw, 100vw"
-          className="object-contain"
-        />
-      </div>
+      <PhotoFrame
+        src={current.src}
+        alt={current.alt}
+        width={current.width}
+        height={current.height}
+        preload={safeIndex === 0}
+        loading={safeIndex === 0 ? undefined : "eager"}
+        quality={60}
+        sizes="(min-width: 1024px) 48vw, 100vw"
+      />
       <ul className="mt-4 flex list-none flex-wrap gap-3" aria-label={`Views of ${name}`}>
         {visibleGalleryImages(images).map((image, index) => {
           const selected = index === safeIndex;

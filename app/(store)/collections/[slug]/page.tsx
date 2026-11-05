@@ -4,7 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { resolveCategoryRoute, type PublicCategory } from "@/lib/categories/public";
 import { listProductsByCategory, withCatalogue, type CatalogueResult } from "@/lib/products/repository";
 import type { ProductDto } from "@/lib/products/types";
-import { CatalogueImage } from "@/components/catalogue-image";
+import { PhotoFrame } from "@/components/photo-frame";
 import { CatalogueLoading, CatalogueProblem } from "@/components/catalogue-status";
 import { Container } from "@/components/container";
 import { ProductCard } from "@/components/product-card";
@@ -46,7 +46,7 @@ async function CollectionProducts({ products }: { products: Promise<CatalogueRes
   return (
     <ul className="mt-16 grid min-w-0 list-none gap-x-6 gap-y-14 sm:grid-cols-2 lg:grid-cols-3 lg:gap-x-8">
       {result.data.map((product) => (
-        <li key={product.slug}>
+        <li key={product.slug} className="h-full">
           <ProductCard product={product} />
         </li>
       ))}
@@ -64,10 +64,16 @@ function CollectionBody({
   return (
     <div className="py-16 sm:py-24">
       <Container>
-        <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
-          <div className="relative aspect-[4/3] overflow-hidden bg-forest/5">
-            <CatalogueImage src={category.image} alt={category.imageAlt} fill frame preload quality={60} sizes="(min-width: 1024px) 45vw, 100vw" />
-          </div>
+        <div className="grid items-start gap-10 lg:grid-cols-2 lg:gap-16">
+          <PhotoFrame
+            src={category.image}
+            alt={category.imageAlt}
+            width={category.imageWidth}
+            height={category.imageHeight}
+            preload
+            quality={60}
+            sizes="(min-width: 1024px) 45vw, 100vw"
+          />
           <SectionHeading id={`${category.slug}-intro`} level="h1" eyebrow="Collection" title={category.name}>
             <p>{category.description} Prices on this page are shown in INR.</p>
           </SectionHeading>

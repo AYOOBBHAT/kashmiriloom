@@ -55,14 +55,16 @@ export function SiteHeader() {
     count === 0
       ? "Shopping bag, empty"
       : `Shopping bag, ${count} ${count === 1 ? "item" : "items"}`;
+  const navLinkClass =
+    "whitespace-nowrap text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-forest hover:text-burgundy";
 
   return (
     <header className="sticky top-0 z-40 border-b border-gold/60 bg-ivory/95 backdrop-blur-md">
-      <div className="mx-auto flex h-16 w-full min-w-0 max-w-7xl items-center gap-2 px-4 sm:h-20 sm:gap-4 sm:px-8">
+      <div className="mx-auto flex min-h-16 w-full min-w-0 max-w-7xl items-center gap-2 px-4 sm:min-h-20 sm:gap-4 sm:px-8">
         <button
           type="button"
           ref={menuButtonRef}
-          className="inline-flex h-11 w-11 shrink-0 items-center justify-center text-forest md:hidden"
+          className="inline-flex h-11 w-11 shrink-0 items-center justify-center text-forest min-[1160px]:hidden"
           aria-expanded={menuOpen}
           aria-haspopup="dialog"
           onClick={openMenu}
@@ -78,27 +80,16 @@ export function SiteHeader() {
           KashmiriLoom
         </Link>
 
-        <nav className="hidden min-w-0 flex-1 flex-wrap items-center justify-center gap-x-6 gap-y-2 md:flex" aria-label="Primary">
+        <nav
+          className="hidden min-w-0 flex-1 flex-nowrap items-center justify-center gap-x-6 min-[1160px]:flex"
+          aria-label="Primary"
+        >
           {primaryNav.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-forest hover:text-burgundy"
-            >
+            <Link key={item.href} href={item.href} className={navLinkClass}>
               {item.label}
             </Link>
           ))}
-          {catalogue.categories.map((category) => (
-            <Link
-              key={category.slug}
-              href={`/collections/${category.slug}`}
-              prefetch={true}
-              className="text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-forest hover:text-burgundy"
-            >
-              {category.name}
-            </Link>
-          ))}
-          <Link href="/account" className="text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-forest hover:text-burgundy">
+          <Link href="/account" className={navLinkClass}>
             Account
           </Link>
         </nav>
@@ -136,6 +127,24 @@ export function SiteHeader() {
           </button>
         </div>
       </div>
+
+      {catalogue.categories.length > 0 ? (
+        <nav
+          className="mx-auto hidden w-full max-w-7xl flex-nowrap items-center justify-center gap-x-6 px-8 pb-4 min-[1160px]:flex"
+          aria-label="Collections"
+        >
+          {catalogue.categories.map((category) => (
+            <Link
+              key={category.slug}
+              href={`/collections/${category.slug}`}
+              prefetch={true}
+              className={navLinkClass}
+            >
+              {category.name}
+            </Link>
+          ))}
+        </nav>
+      ) : null}
 
       <Dialog
         open={menuOpen}

@@ -12,6 +12,7 @@ import {
 } from "@/lib/catalogue-error";
 import { connectToDatabase } from "@/lib/mongodb";
 import { Category } from "@/lib/models/category";
+import { measureImages } from "@/lib/catalogue/measure-image";
 import { publicImage } from "@/lib/products/images";
 
 export type PublicCategory = {
@@ -20,6 +21,8 @@ export type PublicCategory = {
   description: string;
   image: string;
   imageAlt: string;
+  imageWidth: number | null;
+  imageHeight: number | null;
   displayOrder: number;
 };
 
@@ -36,6 +39,8 @@ function fallbackList(): PublicCategory[] {
     description: category.description,
     image: category.imageUrl,
     imageAlt: category.imageAlt,
+    imageWidth: null,
+    imageHeight: null,
     displayOrder: category.displayOrder,
   }));
 }
@@ -55,8 +60,18 @@ function toPublic(record: {
     description: record.description,
     image: image.src,
     imageAlt: image.alt,
+    imageWidth: null,
+    imageHeight: null,
     displayOrder: record.displayOrder,
   };
+}
+
+async function withImageSizes(categories: PublicCategory[]): Promise<PublicCategory[]> {
+  const sizes = await measureImages(categories.map((category) => category.image));
+  return categories.map((category, index) => {
+    const size = sizes[index];
+    return size ? { ...category, imageWidth: size.width, imageHeight: size.height } : category;
+  });
 }
 
 async function readCategories(): Promise<{ stored: boolean; active: PublicCategory[] }> {
@@ -81,11 +96,11 @@ async function readCategories(): Promise<{ stored: boolean; active: PublicCatego
         }>
       >();
     if (docs.length > 0) {
-      return { stored: true, active: docs.map(toPublic) };
+      return { stored: true, active: await withImageSizes(docs.map(toPublic)) };
     }
     const count = await Category.countDocuments({});
     if (count === 0) {
-      return { stored: false, active: fallbackList() };
+      return { stored: false, active: await withImageSizes(fallbackList()) };
     }
     return { stored: true, active: [] };
   } catch (error) {
@@ -138,10 +153,15 @@ export async function resolveCategoryRoute(slug: string): Promise<CategoryRoute>
     ]);
     if (count === 0) {
       const fallback = fallbackList().find((category) => category.slug === slug);
-      return fallback ? { kind: "fallback", category: fallback } : { kind: "missing" };
+      if (!fallback) {
+        return { kind: "missing" };
+      }
+      const [category] = await withImageSizes([fallback]);
+      return { kind: "fallback", category: category ?? fallback };
     }
     if (current?.active) {
-      return { kind: "active", category: toPublic(current) };
+      const [category] = await withImageSizes([toPublic(current)]);
+      return { kind: "active", category: category ?? toPublic(current) };
     }
     if (current) {
       return { kind: "missing" };
