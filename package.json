@@ -21,6 +21,10 @@
     "admin:bootstrap": "node --conditions=react-server --experimental-strip-types --import ./scripts/register.mjs scripts/bootstrap-admin.ts"
   },
   "dependencies": {
+    "@tiptap/core": "^3.32.2",
+    "@tiptap/pm": "^3.32.2",
+    "@tiptap/react": "^3.32.2",
+    "@tiptap/starter-kit": "^3.32.2",
     "@upstash/redis": "^1.39.0",
     "bcryptjs": "^3.0.3",
     "hash-wasm": "^4.12.0",

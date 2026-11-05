@@ -93,7 +93,7 @@ export function BagPanel({ onNavigate }: { onNavigate: () => void }) {
               onClick={onNavigate}
               className="relative h-20 w-16 shrink-0 overflow-hidden bg-forest/5"
             >
-              <CatalogueImage src={product.image} alt="" fill sizes="64px" className="object-cover" />
+              <CatalogueImage src={product.image} alt="" fill sizes="64px" className="object-contain" />
               <span className="sr-only">View {product.name}</span>
             </Link>
             <div className="min-w-0 flex-1">

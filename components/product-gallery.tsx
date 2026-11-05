@@ -33,7 +33,7 @@ export function ProductGallery({ images, name }: ProductGalleryProps) {
 
   return (
     <div>
-      <div className="relative aspect-square overflow-hidden bg-forest/5">
+      <div className="relative aspect-[3/4] overflow-hidden bg-forest/5">
         <CatalogueImage
           src={current.src}
           alt={current.alt}
@@ -42,7 +42,7 @@ export function ProductGallery({ images, name }: ProductGalleryProps) {
           loading={safeIndex === 0 ? undefined : "eager"}
           quality={60}
           sizes="(min-width: 1024px) 48vw, 100vw"
-          className="object-cover"
+          className="object-contain"
         />
       </div>
       <ul className="mt-4 flex list-none flex-wrap gap-3" aria-label={`Views of ${name}`}>
@@ -58,12 +58,12 @@ export function ProductGallery({ images, name }: ProductGalleryProps) {
                 onPointerEnter={() => reveal(index)}
                 aria-pressed={selected}
                 aria-label={`Show image ${index + 1} of ${images.length}`}
-                className={`relative h-20 w-20 overflow-hidden border ${
+                className={`relative h-20 w-16 overflow-hidden border bg-forest/5 ${
                   selected ? "border-forest" : "border-gold/70"
                 }`}
               >
                 {showThumb ? (
-                  <CatalogueImage src={image.src} alt="" fill sizes="80px" className="object-cover" />
+                  <CatalogueImage src={image.src} alt="" fill sizes="64px" className="object-contain" />
                 ) : (
                   <span aria-hidden="true" className="absolute inset-0 grid place-items-center font-serif text-lg text-forest">
                     {index + 1}

@@ -19,9 +19,9 @@ export async function FeaturedShawls() {
           <p className="mt-12 text-lg text-muted">No shawls are marked for this edit.</p>
         ) : (
           <ul className="mt-12 grid min-w-0 list-none gap-x-6 gap-y-14 sm:grid-cols-2 lg:mt-16 lg:grid-cols-3 lg:gap-x-8">
-            {result.data.map((product, index) => (
-              <li key={product.slug} className={index === 0 ? "sm:col-span-2" : undefined}>
-                <ProductCard product={product} featured={index === 0} />
+            {result.data.map((product) => (
+              <li key={product.slug}>
+                <ProductCard product={product} />
               </li>
             ))}
           </ul>

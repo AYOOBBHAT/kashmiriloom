@@ -12,6 +12,7 @@ import { Product } from "@/lib/models/product";
 import { ADMIN_PAGE_SIZE, LOW_STOCK_AT, type AdminListQuery, type AdminStatusFilter } from "@/lib/products/admin-query";
 import { primaryOf } from "@/lib/products/gallery";
 import { activeForStatus, statusFromRecord, type ProductStatus } from "@/lib/products/status";
+import { parseDescriptionDocument } from "@/lib/products/description-doc";
 import type { ProductDraft } from "@/lib/products/validate";
 
 export class AdminAccessError extends Error {
@@ -58,6 +59,7 @@ export type AdminListItem = {
 
 export type AdminProductDetail = AdminListItem & {
   description: string;
+  descriptionDocument: string;
   shortDescription: string;
   compareAtPricePaise: number | null;
   images: { url: string; alt: string; primary: boolean }[];
@@ -97,6 +99,7 @@ type AdminRecord = {
   updatedAt?: Date;
   createdAt?: Date;
   description?: string;
+  descriptionDocument?: unknown;
   shortDescription?: string;
   compareAtPricePaise?: number | null;
   images?: { url?: string; alt?: string; primary?: boolean }[];
@@ -113,7 +116,7 @@ type AdminRecord = {
 };
 
 const listFields = "name slug sku category pricePaise stockQuantity active status featured images updatedAt";
-const detailFields = `${listFields} description shortDescription compareAtPricePaise material dimensions care color weave embroidery size variantGroup variantLabel collectionSlugs createdAt`;
+const detailFields = `${listFields} description descriptionDocument shortDescription compareAtPricePaise material dimensions care color weave embroidery size variantGroup variantLabel collectionSlugs createdAt`;
 
 function escapeRegex(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -158,6 +161,10 @@ function toDetail(record: AdminRecord, names: Map<string, string>): AdminProduct
   return {
     ...toListItem({ ...record, images: normalized }, names),
     description: record.description ?? "",
+    descriptionDocument: (() => {
+      const parsed = parseDescriptionDocument(record.descriptionDocument);
+      return parsed ? JSON.stringify(parsed) : "";
+    })(),
     shortDescription: record.shortDescription ?? "",
     compareAtPricePaise:
       typeof record.compareAtPricePaise === "number" ? record.compareAtPricePaise : null,
@@ -355,6 +362,7 @@ function mongoUpdate(draft: ProductDraft) {
     name: draft.name,
     slug: draft.slug,
     description: draft.description,
+    ...(draft.descriptionDocument ? { descriptionDocument: draft.descriptionDocument } : {}),
     category: draft.category,
     collectionSlugs: draft.collectionSlugs,
     pricePaise: draft.pricePaise,

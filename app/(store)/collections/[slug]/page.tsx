@@ -66,7 +66,7 @@ function CollectionBody({
       <Container>
         <div className="grid items-center gap-10 lg:grid-cols-2 lg:gap-16">
           <div className="relative aspect-[4/3] overflow-hidden bg-forest/5">
-            <CatalogueImage src={category.image} alt={category.imageAlt} fill preload quality={60} sizes="(min-width: 1024px) 45vw, 100vw" className="object-cover" />
+            <CatalogueImage src={category.image} alt={category.imageAlt} fill frame preload quality={60} sizes="(min-width: 1024px) 45vw, 100vw" />
           </div>
           <SectionHeading id={`${category.slug}-intro`} level="h1" eyebrow="Collection" title={category.name}>
             <p>{category.description} Prices on this page are shown in INR.</p>

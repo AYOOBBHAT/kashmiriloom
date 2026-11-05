@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useId, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
+import { DescriptionEditor } from "@/components/admin/description-editor";
 import { uploadCatalogueImageFile } from "@/components/admin/direct-upload";
 import { FormFeedback } from "@/components/admin/form-feedback";
 import type { ProductFormState } from "@/app/admin/actions";
@@ -16,6 +17,7 @@ export type ProductFormValues = {
   name: string;
   slug: string;
   description: string;
+  descriptionDocument: string;
   shortDescription: string;
   category: string;
   collectionSlugs: string[];
@@ -223,13 +225,12 @@ export function ProductForm({
         <p className="mt-2 text-sm text-muted">Shown on product cards. Leave blank to use the first sentence of the description.</p>
         <FieldError id={`${formId}-short-error`} message={state.errors.shortDescription} />
       </div>
-      <div>
-        <label htmlFor={`${formId}-description`} className="text-sm font-medium text-forest">
-          Description
-        </label>
-        <textarea id={`${formId}-description`} name="description" defaultValue={fields.description} required maxLength={2000} rows={6} aria-invalid={Boolean(state.errors.description)} aria-describedby={state.errors.description ? `${formId}-description-error` : undefined} className={fieldClass} />
-        <FieldError id={`${formId}-description-error`} message={state.errors.description} />
-      </div>
+      <DescriptionEditor
+        id={`${formId}-description`}
+        description={fields.description}
+        descriptionDocument={fields.descriptionDocument}
+        error={state.errors.description}
+      />
 
       <div className="grid gap-6 sm:grid-cols-2">
         <div>

@@ -25,6 +25,7 @@ function valuesFromProduct(product: NonNullable<Awaited<ReturnType<typeof getAdm
     name: product.name,
     slug: product.slug,
     description: product.description,
+    descriptionDocument: product.descriptionDocument,
     shortDescription: product.shortDescription,
     category: product.category,
     collectionSlugs: product.collectionSlugs,

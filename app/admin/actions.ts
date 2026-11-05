@@ -80,6 +80,7 @@ export async function saveProduct(
     name: formData.get("name"),
     slug: formData.get("slug"),
     description: formData.get("description"),
+    descriptionDocument: formData.get("descriptionDocument"),
     shortDescription: formData.get("shortDescription"),
     category: formData.get("category"),
     collectionSlugs: formData.getAll("collectionSlug"),

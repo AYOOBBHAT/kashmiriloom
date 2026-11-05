@@ -5,7 +5,9 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { CatalogueAccessError } from "@/lib/catalogue-error";
 import { formatInrFromPaise } from "@/lib/money";
+import { ProductDescription } from "@/components/product-description";
 import { AdminAccessError, getAdminProduct } from "@/lib/products/admin-repository";
+import { parseDescriptionJson } from "@/lib/products/description-doc";
 
 export const metadata: Metadata = { title: "Preview shawl" };
 
@@ -54,7 +56,8 @@ async function Preview({ params }: PageProps) {
         </div>
         <div>
           <p className="text-sm text-burgundy">{product.categoryName}</p>
-          <p className="mt-4 text-lg leading-relaxed text-ink">{product.shortDescription || product.description}</p>
+          {product.shortDescription ? <p className="mt-4 text-lg leading-relaxed text-ink">{product.shortDescription}</p> : null}
+          <ProductDescription description={product.description} document={parseDescriptionJson(product.descriptionDocument)} />
           <p className="mt-6 font-serif text-4xl text-forest">{formatInrFromPaise(product.pricePaise)}</p>
           <dl className="mt-6 space-y-3 text-sm text-ink">
             <div><dt className="text-burgundy">SKU</dt><dd>{product.sku}</dd></div>

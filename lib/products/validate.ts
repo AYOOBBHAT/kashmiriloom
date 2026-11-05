@@ -1,4 +1,10 @@
 import { isSlug } from "@/lib/catalogue/slug";
+import {
+  parseDescriptionDocument,
+  parseDescriptionJson,
+  plainText,
+  type DescriptionDocument,
+} from "@/lib/products/description-doc";
 import { isApprovedImageUrl } from "@/lib/products/images";
 import { MAX_PRODUCT_IMAGES } from "@/lib/products/limits";
 import { withPrimaryImage } from "@/lib/products/gallery";
@@ -9,6 +15,7 @@ export type ProductDraft = {
   name: string;
   slug: string;
   description: string;
+  descriptionDocument?: DescriptionDocument;
   shortDescription?: string;
   category: string;
   collectionSlugs: string[];
@@ -87,6 +94,7 @@ export function validateProductDraft(input: {
   name: unknown;
   slug: unknown;
   description: unknown;
+  descriptionDocument?: unknown;
   shortDescription: unknown;
   category: unknown;
   collectionSlugs: unknown[];
@@ -112,7 +120,19 @@ export function validateProductDraft(input: {
   const errors: FieldErrors = {};
   const name = clean(input.name);
   const slug = clean(input.slug).toLowerCase();
-  const description = clean(input.description);
+  let description = clean(input.description);
+  let descriptionDocument: DescriptionDocument | undefined;
+  const submittedDocument = input.descriptionDocument;
+  if (submittedDocument !== undefined && submittedDocument !== null && submittedDocument !== "") {
+    const parsed =
+      typeof submittedDocument === "string" ? parseDescriptionJson(submittedDocument) : parseDescriptionDocument(submittedDocument);
+    if (!parsed) {
+      errors.description = "The description formatting could not be saved. Use the editor tools and try again.";
+    } else {
+      descriptionDocument = parsed;
+      description = plainText(parsed);
+    }
+  }
   const category = clean(input.category).toLowerCase();
   const priceRupees = clean(input.priceRupees);
   const compareAtRupees = clean(input.compareAtRupees);
@@ -129,7 +149,7 @@ export function validateProductDraft(input: {
   if (!isSlug(slug)) {
     errors.slug = "Use a lowercase slug such as dal-garden.";
   }
-  if (description.length < 1 || description.length > 2000) {
+  if (!errors.description && (description.length < 1 || description.length > 2000)) {
     errors.description = "Enter a description of 2,000 characters or fewer.";
   }
   if (!isSlug(category)) {
@@ -232,6 +252,7 @@ export function validateProductDraft(input: {
       name,
       slug,
       description,
+      ...(descriptionDocument ? { descriptionDocument } : {}),
       category,
       collectionSlugs,
       pricePaise,

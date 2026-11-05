@@ -16,6 +16,7 @@ import { isPaise } from "@/lib/money";
 import { categoryMembership } from "@/lib/products/membership";
 import { primaryOf } from "@/lib/products/gallery";
 import { publicImage } from "@/lib/products/images";
+import { parseDescriptionDocument, type DescriptionDocument } from "@/lib/products/description-doc";
 import { summaryFromDescription } from "@/lib/products/summary";
 import type { ProductDto, ProductVariantChoice } from "@/lib/products/types";
 import { MAX_PUBLIC_PRODUCTS, type ShopQuery, type ShopSort } from "@/lib/shop";
@@ -227,9 +228,21 @@ export async function variantChoices(group: string, slug: string): Promise<Produ
 }
 
 export type PublicProductRoute =
-  | { kind: "product"; product: ProductDto }
+  | { kind: "product"; product: ProductDto; descriptionDocument: DescriptionDocument | null }
   | { kind: "redirect"; slug: string }
   | { kind: "missing" };
+
+async function descriptionDocumentFor(slug: string): Promise<DescriptionDocument | null> {
+  "use cache";
+  cacheTag(PUBLIC_CATALOGUE_TAG);
+  cacheLife("minutes");
+  await io();
+  await connectToDatabase();
+  const record = await Product.findOne({ slug, active: true })
+    .select("descriptionDocument")
+    .lean<{ descriptionDocument?: unknown } | null>();
+  return parseDescriptionDocument(record?.descriptionDocument);
+}
 
 export async function getPublicProductRoute(slug: string): Promise<PublicProductRoute> {
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) || slug.length > 80) {
@@ -237,8 +250,11 @@ export async function getPublicProductRoute(slug: string): Promise<PublicProduct
   }
   const product = await getProductBySlug(slug);
   if (product) {
-    const variants = product ? await variantChoicesFor(product.slug) : [];
-    return { kind: "product", product: { ...product, variants } };
+    const [variants, descriptionDocument] = await Promise.all([
+      variantChoicesFor(product.slug),
+      descriptionDocumentFor(product.slug),
+    ]);
+    return { kind: "product", product: { ...product, variants }, descriptionDocument };
   }
   await io();
   await connectToDatabase();

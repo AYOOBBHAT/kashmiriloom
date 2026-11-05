@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { describe, test } from "node:test";
 import { cloudinaryTransformedUrl, shawlDeliveryUrl, shawlPublicId } from "@/lib/catalogue/cloudinary-delivery";
+import { frameObjectFit } from "@/lib/catalogue/image-frame";
 import { cloudinaryUploadSignature } from "@/lib/catalogue/cloudinary-sign";
 import { summarizeCloudinaryUsage } from "@/lib/catalogue/cloudinary-usage";
 import { cloudinaryImagePatch, planShawlCloudinaryMigration, type CloudinaryProduct } from "@/lib/catalogue/shawl-cloudinary";
@@ -42,6 +43,7 @@ describe("imported shawl Cloudinary migration", () => {
     assert.equal(gallery, `https://res.cloudinary.com/${cloud}/image/upload/f_auto,q_auto:good,c_limit,w_1600/kashmiriloom/shawls/kani-1-18/01`);
     assert.equal(cloudinaryTransformedUrl("https://evil.example/photo.png", 640), null);
     assert.equal(cloudinaryTransformedUrl(stored, 0), null);
+    assert.doesNotMatch(`${card} ${gallery}`, /c_fill|c_crop|c_pad/);
   });
 
   test("reuses the same public id and leaves an unrelated product out of the update", () => {
@@ -152,5 +154,33 @@ describe("imported shawl Cloudinary migration", () => {
     assert.doesNotMatch(script, /unlink|rmSync|rename\(/);
     assert.equal(summarizeCloudinaryUsage({ plan: "Free", storage: { usage: 10, limit: 20 }, credits: { usage: 1, limit: 25 } })?.storageUsed, 10);
     assert.equal(summarizeCloudinaryUsage({ api_secret: "hidden" })?.plan, null);
+  });
+
+  test("keeps a tall shawl whole and lets a wide textile photo fill its frame", () => {
+    assert.equal(frameObjectFit(432, 934, 384, 512), "contain");
+    assert.equal(frameObjectFit(432, 324, 384, 512), "cover");
+    assert.equal(frameObjectFit(3, 4, 300, 400), "cover");
+    assert.equal(frameObjectFit(0, 10, 10, 10), "contain");
+    const collection = readFileSync("components/collection-grid.tsx", "utf8");
+    const card = readFileSync("components/product-card.tsx", "utf8");
+    const gallery = readFileSync("components/product-gallery.tsx", "utf8");
+    const category = readFileSync("app/(store)/collections/[slug]/page.tsx", "utf8");
+    const image = readFileSync("components/catalogue-image.tsx", "utf8");
+    assert.match(collection, /frame/);
+    assert.match(collection, /aspect-\[3\/4\]/);
+    assert.match(collection, /bg-forest\/10/);
+    assert.doesNotMatch(collection, /object-cover|scale-/);
+    assert.match(category, /frame/);
+    assert.match(category, /aspect-\[4\/3\]/);
+    assert.doesNotMatch(category, /object-cover/);
+    for (const source of [card, gallery]) {
+      assert.match(source, /object-contain/);
+      assert.match(source, /aspect-\[3\/4\]/);
+      assert.match(source, /bg-forest\/5/);
+      assert.doesNotMatch(source, /object-cover|scale-/);
+    }
+    assert.match(image, /frameObjectFit/);
+    assert.match(readFileSync("components/bag-panel.tsx", "utf8"), /object-contain/);
+    assert.doesNotMatch(readFileSync("components/featured-shawls.tsx", "utf8"), /col-span-2|aspect-\[16\/10\]/);
   });
 });

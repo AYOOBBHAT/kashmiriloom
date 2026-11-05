@@ -24,6 +24,7 @@ export type EnteredProduct = {
   name: string;
   slug: string;
   description: string;
+  descriptionDocument: string;
   shortDescription: string;
   category: string;
   collectionSlugs: string[];
@@ -69,6 +70,7 @@ export function productEntered(formData: FormData): EnteredProduct {
     name: text(formData.get("name")),
     slug: text(formData.get("slug")),
     description: text(formData.get("description")),
+    descriptionDocument: text(formData.get("descriptionDocument")),
     shortDescription: text(formData.get("shortDescription")),
     category: text(formData.get("category")),
     collectionSlugs: formData.getAll("collectionSlug").flatMap((entry) => (typeof entry === "string" && entry ? [entry] : [])),

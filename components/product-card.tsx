@@ -5,29 +5,20 @@ import type { ProductDto } from "@/lib/products/types";
 
 type ProductCardProps = {
   product: ProductDto;
-  featured?: boolean;
 };
 
-export function ProductCard({ product, featured = false }: ProductCardProps) {
+export function ProductCard({ product }: ProductCardProps) {
   return (
     <article id={product.slug} tabIndex={-1} className="scroll-mt-28 outline-none">
-      <Link href={`/products/${product.slug}`} className="group block">
-        <div
-          className={`relative overflow-hidden bg-forest/5 ${
-            featured ? "aspect-[4/5] sm:aspect-[16/10]" : "aspect-square"
-          }`}
-        >
+      <Link href={`/products/${product.slug}`} className="block">
+        <div className="relative aspect-[3/4] overflow-hidden bg-forest/5">
           <CatalogueImage
             src={product.image}
             alt={product.imageAlt}
             fill
             quality={60}
-            sizes={
-              featured
-                ? "(min-width: 640px) 66vw, 100vw"
-                : "(min-width: 1024px) 30vw, (min-width: 640px) 45vw, 100vw"
-            }
-            className="object-cover motion-safe:transition motion-safe:duration-700 motion-safe:group-hover:scale-[1.03]"
+            sizes="(min-width: 1024px) 30vw, (min-width: 640px) 45vw, 100vw"
+            className="object-contain"
           />
         </div>
         <p className="mt-5 text-[0.72rem] font-semibold uppercase tracking-[0.2em] text-burgundy">

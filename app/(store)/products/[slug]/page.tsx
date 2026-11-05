@@ -15,6 +15,7 @@ import { AddToBag } from "@/components/add-to-bag";
 import { CatalogueLoading, CatalogueProblem } from "@/components/catalogue-status";
 import { Container } from "@/components/container";
 import { ProductCard } from "@/components/product-card";
+import { ProductDescription } from "@/components/product-description";
 import { ProductGallery } from "@/components/product-gallery";
 import { JsonLd } from "@/components/json-ld";
 import { productPageJsonLd } from "@/lib/site/structured-data";
@@ -105,7 +106,7 @@ async function ProductDetail({ params }: ProductPageProps) {
           <h1 className="mt-3 font-serif text-4xl leading-tight text-balance text-forest sm:text-6xl">
             {product.name}
           </h1>
-          <p className="mt-5 max-w-xl text-lg leading-relaxed text-muted">{product.description}</p>
+          <ProductDescription description={product.description} document={result.data.descriptionDocument} />
           <p className="mt-8 text-[0.72rem] font-semibold uppercase tracking-[0.2em] text-burgundy">
             Price
           </p>

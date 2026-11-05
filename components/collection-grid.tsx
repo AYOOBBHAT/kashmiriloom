@@ -26,9 +26,9 @@ export async function CollectionGrid() {
                       src={category.image}
                       alt={category.imageAlt || category.name}
                       fill
+                      frame
                       quality={60}
                       sizes="(min-width: 1024px) 30vw, (min-width: 640px) 50vw, 100vw"
-                      className="object-cover motion-safe:transition motion-safe:duration-700 motion-safe:group-hover:scale-105"
                     />
                   </div>
                   <h3 className="mt-5 font-serif text-3xl text-forest">{category.name}</h3>

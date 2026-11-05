@@ -2,6 +2,7 @@ import "server-only";
 
 import mongoose, { type Model, Schema } from "mongoose";
 import { MAX_PAISE } from "@/lib/money";
+import { parseDescriptionDocument, type DescriptionDocument } from "@/lib/products/description-doc";
 import { MAX_PRODUCT_IMAGES } from "@/lib/products/limits";
 import type { ProductStatus } from "@/lib/products/status";
 
@@ -15,6 +16,7 @@ export interface ProductAttrs {
   name: string;
   slug: string;
   description: string;
+  descriptionDocument?: DescriptionDocument;
   shortDescription?: string;
   category: string;
   collectionSlugs?: string[];
@@ -65,6 +67,16 @@ const productSchema = new Schema<ProductAttrs>(
       match: /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
     },
     description: { type: String, required: true, trim: true, minlength: 1, maxlength: 2000 },
+    descriptionDocument: {
+      type: Schema.Types.Mixed,
+      required: false,
+      validate: {
+        validator(value: unknown) {
+          return value == null || parseDescriptionDocument(value) !== null;
+        },
+        message: "Description formatting is not valid.",
+      },
+    },
     shortDescription: { type: String, trim: true, maxlength: 280 },
     category: {
       type: String,
